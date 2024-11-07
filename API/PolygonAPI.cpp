@@ -33,6 +33,27 @@ std::string PolygonAPI::getStockData(const std::string& tickerSymbol) {
     return response;
 }
 
+std::vector<double> PolygonAPI::getHistoricalPrices(const std::string& tickerSymbol, int days) {
+    std::vector<double> prices;
+    std::string url = baseURL + "aggs/ticker/" + tickerSymbol + "/range/1/day/2023-01-01/2023-12-31?adjusted=true&sort=desc&limit=" + std::to_string(days) + "&apiKey=" + apiKey;
+    std::string response = makeRequest(url);
+
+    try {
+        auto jsonResponse = json::parse(response);
+        if (jsonResponse["status"] == "OK") {
+            auto results = jsonResponse["results"];
+            for (const auto& result : results) {
+                double closePrice = result["c"];
+                prices.push_back(closePrice);
+            }
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "JSON Parsing Error: " << e.what() << std::endl;
+    }
+
+    return prices;
+}
+
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
     ((std::string*)userp)->append((char*)contents, size * nmemb);
 

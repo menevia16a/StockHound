@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "API/PolygonAPI.h"
+#include "Analysis/StockAnalysis.h"
 
 #include <QMainWindow>
 
