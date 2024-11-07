@@ -1,0 +1,3 @@
+[submodule "ThirdParty/alpaca-trade-api-cpp"]
+	path = ThirdParty/alpaca-trade-api-cpp
+	url = git@github.com:menevia16a/alpaca-trade-api-cpp.git
