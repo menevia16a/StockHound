@@ -15,10 +15,10 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 set(TS_FILES StockHound_en_US.ts)
 
 set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
+    Main.cpp
+        MainWindow.cpp
+        MainWindow.h
+        MainWindow.ui
         ${TS_FILES}
 )
 
@@ -78,8 +78,9 @@ if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(StockHound)
 endif()
 
-# Curl Required
+# StockHound Required Libraries
 find_package(CURL REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 target_link_libraries(StockHound PRIVATE CURL::libcurl)
-
+target_link_libraries(StockHound PRIVATE nlohmann_json::nlohmann_json)
