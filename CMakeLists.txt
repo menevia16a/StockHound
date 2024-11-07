@@ -26,8 +26,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(StockHound
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        API/PolygonAPI.h
-        API/PolygonAPI.cpp
         Analysis/StockAnalysis.cpp
         Analysis/StockAnalysis.h
 
@@ -82,8 +80,13 @@ if(QT_VERSION_MAJOR EQUAL 6)
 endif()
 
 # StockHound Required Libraries
-find_package(CURL REQUIRED)
-find_package(nlohmann_json REQUIRED)
+add_subdirectory(ThirdParty/alpaca-trade-api-cpp)
 
-target_link_libraries(StockHound PRIVATE CURL::libcurl)
+find_package(nlohmann_json REQUIRED)
+find_package(SQLite3 REQUIRED)
+find_package(CURL REQUIRED)
+
 target_link_libraries(StockHound PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(StockHound PRIVATE SQLite::SQLite3)
+target_link_libraries(StockHound PRIVATE CURL::libcurl)
+target_link_libraries(StockHound PRIVATE alpaca)
