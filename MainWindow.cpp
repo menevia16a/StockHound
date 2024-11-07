@@ -13,16 +13,14 @@ using json = nlohmann::json;
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , polygonAPI(new PolygonAPI("qDBekvAkp7R3_8zkuOKUHSS17f7wkjU6"))
-{
+    , polygonAPI(new PolygonAPI("qDBekvAkp7R3_8zkuOKUHSS17f7wkjU6")) {
     ui->setupUi(this);
 
     // Connect the search button to the slot
     connect(ui->searchButton, &QPushButton::clicked, this, &MainWindow::onSearchButtonClicked);
 }
 
-MainWindow::~MainWindow()
-{
+MainWindow::~MainWindow() {
     delete ui;
     delete polygonAPI;
 }

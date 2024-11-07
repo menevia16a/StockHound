@@ -1,0 +1,59 @@
+#include "StockAnalysis.h"
+
+#include <numeric>
+#include <cmath>
+#include <stdexcept>
+
+double StockAnalysis::calculateMovingAverage(const std::vector<double>& prices, int period) {
+    if (prices.size() < period) {
+        throw std::invalid_argument("Not enough data to calculate Moving Average");
+    }
+
+    double sum = std::accumulate(prices.end() - period, prices.end(), 0.0);
+    return sum / period;
+}
+
+double StockAnalysis::calculateRSI(const std::vector<double>& prices, int period) {
+    if (prices.size() <= period) {
+        throw std::invalid_argument("Not enough data to calculate RSI");
+    }
+
+    double gain = 0.0, loss = 0.0;
+
+    for (size_t i = prices.size() - period; i < prices.size() - 1; ++i) {
+        double change = prices[i + 1] - prices[i];
+        if (change > 0) {
+            gain += change;
+        } else {
+            loss -= change;
+        }
+    }
+
+    double avgGain = gain / period;
+    double avgLoss = loss / period;
+
+    if (avgLoss == 0) return 100.0;
+
+    double rs = avgGain / avgLoss;
+    return 100.0 - (100.0 / (1.0 + rs));
+}
+
+std::pair<double, double> StockAnalysis::calculateBollingerBands(const std::vector<double>& prices, int period, double numStdDev) {
+    if (prices.size() < period) {
+        throw std::invalid_argument("Not enough data to calculate Bollinger Bands");
+    }
+
+    double movingAverage = calculateMovingAverage(prices, period);
+    double sumSquares = 0.0;
+
+    for (size_t i = prices.size() - period; i < prices.size(); ++i) {
+        double diff = prices[i] - movingAverage;
+        sumSquares += diff * diff;
+    }
+
+    double stdDev = std::sqrt(sumSquares / period);
+    double upperBand = movingAverage + numStdDev * stdDev;
+    double lowerBand = movingAverage - numStdDev * stdDev;
+
+    return {upperBand, lowerBand};
+}
