@@ -7,8 +7,8 @@
 int main(int argc, char *argv[])
 {
     QApplication application(argc, argv);
-
     QTranslator translator;
+
     const QStringList uiLanguages = QLocale::system().uiLanguages();
 
     for (const QString &locale : uiLanguages) {

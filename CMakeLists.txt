@@ -26,6 +26,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(StockHound
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        API/PolygonAPI.h
+        API/PolygonAPI.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET StockHound APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
