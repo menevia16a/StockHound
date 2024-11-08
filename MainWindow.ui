@@ -17,7 +17,7 @@
    <widget class="QPushButton" name="searchButton">
     <property name="geometry">
      <rect>
-      <x>370</x>
+      <x>330</x>
       <y>50</y>
       <width>80</width>
       <height>23</height>
@@ -30,9 +30,9 @@
    <widget class="QLineEdit" name="budgetInput">
     <property name="geometry">
      <rect>
-      <x>390</x>
+      <x>350</x>
       <y>10</y>
-      <width>41</width>
+      <width>51</width>
       <height>23</height>
      </rect>
     </property>
@@ -53,10 +53,10 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>370</x>
-      <y>10</y>
-      <width>16</width>
-      <height>21</height>
+      <x>330</x>
+      <y>11</y>
+      <width>20</width>
+      <height>20</height>
      </rect>
     </property>
     <property name="text">
