@@ -28,7 +28,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         Analysis/StockAnalysis.cpp
         Analysis/StockAnalysis.h
-
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET StockHound APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -79,14 +78,14 @@ if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(StockHound)
 endif()
 
-# StockHound Required Libraries
+# StockHound required libraries
 add_subdirectory(ThirdParty/alpaca-trade-api-cpp)
 
-find_package(nlohmann_json REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(CURL REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
-target_link_libraries(StockHound PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(StockHound PRIVATE alpaca)
 target_link_libraries(StockHound PRIVATE SQLite::SQLite3)
 target_link_libraries(StockHound PRIVATE CURL::libcurl)
-target_link_libraries(StockHound PRIVATE alpaca)
+target_link_libraries(StockHound PRIVATE nlohmann_json::nlohmann_json)
