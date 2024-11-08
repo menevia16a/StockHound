@@ -71,6 +71,7 @@ void MainWindow::onSearchButtonClicked() {
     // Initialize Alpaca client for API request
     alpaca::Environment env;
     auto status = env.parse();
+
     if (!status.ok()) {
         QMessageBox::critical(this, "Environment Error", QString::fromStdString(status.getMessage()));
         return;
@@ -79,33 +80,40 @@ void MainWindow::onSearchButtonClicked() {
 
     // Fetch assets from Alpaca
     auto [fetchStatus, assets] = client.getAssets();
+
     if (!fetchStatus.ok()) {
         QMessageBox::critical(this, "API Error", QString::fromStdString(fetchStatus.getMessage()));
         return;
     }
 
-    // Gather tradeable symbols
+    // Gather symbols
     std::vector<std::string> symbols;
+
     for (const auto& asset : assets) {
-        if (asset.tradable && asset.asset_class == "us_equity") {
-            symbols.push_back(asset.symbol);
-        }
+        symbols.push_back(asset.symbol);
     }
 
-    // Fetch last trade prices for all symbols
     auto [tradeStatus, lastTrades] = client.getLatestTrades(symbols);
+
     if (!tradeStatus.ok()) {
         std::cerr << "API Error fetching trades: " << tradeStatus.getMessage() << std::endl;
         QMessageBox::critical(this, "API Error", QString::fromStdString(tradeStatus.getMessage()));
         return;
     }
 
+    // Log trades data to see if it's returning as expected
+    for (const auto& [symbol, lastTrade] : lastTrades) {
+        std::cout << "Trade for symbol: " << symbol << " - Price: " << lastTrade.price << std::endl;
+    }
+
     // Update cache and filter stocks within budget
     QSqlQuery insertQuery;
+
     for (const auto& [symbol, lastTrade] : lastTrades) {
         double price = lastTrade.price;
-        if (price < budget) {
-            stocks << QString::fromStdString(symbol);
+
+        if (price <= budget) {
+            stocks << "Ticker: " + QString::fromStdString(symbol) + " Price: " + QString::number(lastTrade.price);
         }
 
         // Insert or replace cache with new data
@@ -132,7 +140,6 @@ void MainWindow::displayStocks(const QStringList& stocks) {
     }
 }
 
-MainWindow::~MainWindow()
-{
+MainWindow::~MainWindow() {
     delete ui;
 }
