@@ -4,6 +4,10 @@
 #include "ThirdParty/alpaca-trade-api-cpp/alpaca/config.h"
 
 #include <nlohmann/json.hpp>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QDateTime>
 #include <iostream>
 #include <QMessageBox>
 #include <QPushButton>
@@ -15,6 +19,22 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow) {
     ui->setupUi(this);
     connect(ui->searchButton, &QPushButton::clicked, this, &MainWindow::onSearchButtonClicked);
+
+    // Set up SQLite database connection
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    db.setDatabaseName("stock_cache.db");
+
+    if (!db.open()) {
+        QMessageBox::critical(this, "Database Error", "Failed to open the SQLite database.");
+        return;
+    }
+
+    // Create table for caching if it doesn't exist
+    QSqlQuery query;
+    query.exec("CREATE TABLE IF NOT EXISTS stock_cache ("
+               "symbol TEXT PRIMARY KEY, "
+               "price REAL, "
+               "last_updated INTEGER)"); // last_updated in Unix timestamp
 }
 
 void MainWindow::onSearchButtonClicked() {
@@ -27,7 +47,28 @@ void MainWindow::onSearchButtonClicked() {
         return;
     }
 
-    // Initialize Alpaca client
+    // Check for cached data before making API requests
+    QStringList stocks;
+    QSqlQuery query;
+    query.prepare("SELECT symbol, price FROM stock_cache WHERE price < :budget AND "
+                  "last_updated > :last_day");
+    query.bindValue(":budget", budget);
+    query.bindValue(":last_day", QDateTime::currentSecsSinceEpoch() - 86400); // 24 hours ago
+
+    if (query.exec()) {
+        while (query.next()) {
+            stocks << query.value(0).toString();
+        }
+    } else {
+        std::cerr << "Database query error: " << query.lastError().text().toStdString() << std::endl;
+    }
+
+    if (!stocks.isEmpty()) {
+        displayStocks(stocks);
+        return;
+    }
+
+    // Initialize Alpaca client for API request
     alpaca::Environment env;
     auto status = env.parse();
     if (!status.ok()) {
@@ -43,33 +84,39 @@ void MainWindow::onSearchButtonClicked() {
         return;
     }
 
-    // Filter for tradable US equities
-    std::vector<alpaca::Asset> tradableAssets;
+    // Gather tradeable symbols
+    std::vector<std::string> symbols;
     for (const auto& asset : assets) {
         if (asset.tradable && asset.asset_class == "us_equity") {
-            tradableAssets.push_back(asset);
+            symbols.push_back(asset.symbol);
         }
     }
 
-    // Collect symbols of tradable assets
-    std::vector<std::string> symbols;
-    for (const auto& asset : tradableAssets) {
-        symbols.push_back(asset.symbol);
-    }
-
     // Fetch last trade prices for all symbols
-    auto [tradeStatus, lastTrades] = client.getLastTrades(symbols);
-    if (!fetchStatus.ok()) {
-        std::cerr << "API Error fetching assets: " << fetchStatus.getMessage() << std::endl;
-        QMessageBox::critical(this, "API Error", QString::fromStdString(fetchStatus.getMessage()));
+    auto [tradeStatus, lastTrades] = client.getLatestTrades(symbols);
+    if (!tradeStatus.ok()) {
+        std::cerr << "API Error fetching trades: " << tradeStatus.getMessage() << std::endl;
+        QMessageBox::critical(this, "API Error", QString::fromStdString(tradeStatus.getMessage()));
         return;
     }
 
-    // Filter stocks within budget
-    QStringList stocks;
+    // Update cache and filter stocks within budget
+    QSqlQuery insertQuery;
     for (const auto& [symbol, lastTrade] : lastTrades) {
-        if (lastTrade.trade.price < budget) {
+        double price = lastTrade.price;
+        if (price < budget) {
             stocks << QString::fromStdString(symbol);
+        }
+
+        // Insert or replace cache with new data
+        insertQuery.prepare("INSERT OR REPLACE INTO stock_cache (symbol, price, last_updated) "
+                            "VALUES (:symbol, :price, :last_updated)");
+        insertQuery.bindValue(":symbol", QString::fromStdString(symbol));
+        insertQuery.bindValue(":price", price);
+        insertQuery.bindValue(":last_updated", QDateTime::currentSecsSinceEpoch());
+
+        if (!insertQuery.exec()) {
+            std::cerr << "Database insert error: " << insertQuery.lastError().text().toStdString() << std::endl;
         }
     }
 
@@ -83,8 +130,6 @@ void MainWindow::displayStocks(const QStringList& stocks) {
     } else {
         ui->stockList->setPlainText("No stocks found within the specified budget.");
     }
-
-    ui->stockList->setPlainText(stocks.join("\n"));
 }
 
 MainWindow::~MainWindow()
