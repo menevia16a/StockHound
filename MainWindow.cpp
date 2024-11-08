@@ -43,18 +43,33 @@ void MainWindow::onSearchButtonClicked() {
         return;
     }
 
-    // Filter stocks within budget based on last trade price
-    QStringList stocks;
+    // Filter for tradable US equities
+    std::vector<alpaca::Asset> tradableAssets;
     for (const auto& asset : assets) {
-        // Use getLastTrade to retrieve the latest trade price for the asset
-        auto [tradeStatus, lastTrade] = client.getLastTrade(asset.symbol);
-        if (!tradeStatus.ok()) {
-            continue;  // Skip if we can't retrieve the trade data
+        if (asset.tradable && asset.asset_class == "us_equity") {
+            tradableAssets.push_back(asset);
         }
+    }
 
-        // Access the price from the trade member of LastTrade
+    // Collect symbols of tradable assets
+    std::vector<std::string> symbols;
+    for (const auto& asset : tradableAssets) {
+        symbols.push_back(asset.symbol);
+    }
+
+    // Fetch last trade prices for all symbols
+    auto [tradeStatus, lastTrades] = client.getLastTrades(symbols);
+    if (!fetchStatus.ok()) {
+        std::cerr << "API Error fetching assets: " << fetchStatus.getMessage() << std::endl;
+        QMessageBox::critical(this, "API Error", QString::fromStdString(fetchStatus.getMessage()));
+        return;
+    }
+
+    // Filter stocks within budget
+    QStringList stocks;
+    for (const auto& [symbol, lastTrade] : lastTrades) {
         if (lastTrade.trade.price < budget) {
-            stocks << QString::fromStdString(asset.symbol);
+            stocks << QString::fromStdString(symbol);
         }
     }
 
@@ -63,9 +78,10 @@ void MainWindow::onSearchButtonClicked() {
 
 void MainWindow::displayStocks(const QStringList& stocks) {
     ui->stockList->clear();
-    if (stocks.isEmpty()) {
+    if (!stocks.isEmpty()) {
+        ui->stockList->setPlainText(stocks.join("\n") + "\n\nTotal stocks found: " + QString::number(stocks.size()));
+    } else {
         ui->stockList->setPlainText("No stocks found within the specified budget.");
-        return;
     }
 
     ui->stockList->setPlainText(stocks.join("\n"));
