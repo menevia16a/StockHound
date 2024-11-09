@@ -22,7 +22,7 @@ public:
 
 private slots:
     void onSearchButtonClicked();
-    void displayStocks(const QStringList& stocks);
+    void displayStocks(const QStringList& stockInfoList);
 
 private:
     Ui::MainWindow *ui;

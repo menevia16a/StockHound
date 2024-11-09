@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include "Analysis/StockAnalysis.h"
 #include "ThirdParty/alpaca-trade-api-cpp/alpaca/client.h"
 #include "ThirdParty/alpaca-trade-api-cpp/alpaca/config.h"
 
@@ -13,6 +14,7 @@
 #include <QPushButton>
 #include <QLineEdit>
 #include <QPlainTextEdit>
+#include <QDateTime>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -106,17 +108,67 @@ void MainWindow::onSearchButtonClicked() {
         std::cout << "Trade for symbol: " << symbol << " - Price: " << lastTrade.price << std::endl;
     }
 
-    // Update cache and filter stocks within budget
-    QSqlQuery insertQuery;
+    QStringList stockInfoList; // Store formatted stock info to display in UI
 
     for (const auto& [symbol, lastTrade] : lastTrades) {
         double price = lastTrade.price;
 
+        // Only include stocks within the user's budget
         if (price <= budget) {
-            stocks << "Ticker: " + QString::fromStdString(symbol) + " Price: " + QString::number(lastTrade.price);
+            // Fetch historical data for the last 20 days
+            int period = 20;
+            std::vector<double> priceHistory;
+
+            // Prepare the symbol in a vector for getBars
+            std::vector<std::string> symbolVec = {symbol};
+
+            // Calculate the date range (last 20 days)
+            QDateTime endDate = QDateTime::currentDateTime();
+            QDateTime startDate = endDate.addDays(-period);
+
+            // Convert dates to ISO format strings (Alpaca expects "YYYY-MM-DD")
+            std::string end = endDate.toString("yyyy-MM-dd").toStdString();
+            std::string start = startDate.toString("yyyy-MM-dd").toStdString();
+
+            // Fetch the bars data using the date range
+            auto [barStatus, bars] = client.getBars(symbolVec, start, end, "", "", "day", period);
+
+            if (barStatus.ok()) {
+                // Check if the symbol exists in the bars map
+                auto it = bars.bars.find(symbol);
+                if (it != bars.bars.end()) {
+                    // Iterate over the vector of Bar objects for this symbol
+                    for (const auto& bar : it->second) {
+                        priceHistory.push_back(bar.close_price); // Store closing prices
+                    }
+                } else {
+                    std::cerr << "No bars found for symbol " << symbol << std::endl;
+                    continue; // Skip this stock if no bars are found
+                }
+            } else {
+                std::cerr << "API Error fetching bars for " << symbol << ": " << barStatus.getMessage() << std::endl;
+                continue; // Skip this stock if historical data fails
+            }
+
+            if (priceHistory.size() < period) {
+                std::cerr << "Not enough historical data for " << symbol << std::endl;
+                continue; // Skip stocks without enough data
+            }
+
+            // Calculate total score
+            double score = StockAnalysis::calculateTotalScore(price, priceHistory, period);
+
+            // Format stock information with score
+            QString stockInfo = QString("Ticker: %1 | Price: %2 | Score: %3")
+                                    .arg(QString::fromStdString(symbol))
+                                    .arg(price)
+                                    .arg(score, 0, 'f', 2);
+
+            stockInfoList << stockInfo;
         }
 
         // Insert or replace cache with new data
+        QSqlQuery insertQuery;
         insertQuery.prepare("INSERT OR REPLACE INTO stock_cache (symbol, price, last_updated) "
                             "VALUES (:symbol, :price, :last_updated)");
         insertQuery.bindValue(":symbol", QString::fromStdString(symbol));
@@ -128,13 +180,16 @@ void MainWindow::onSearchButtonClicked() {
         }
     }
 
-    displayStocks(stocks);
+    // Display the list of stocks with scores
+    displayStocks(stockInfoList);
 }
 
-void MainWindow::displayStocks(const QStringList& stocks) {
+// Update displayStocks to accept and show score information
+void MainWindow::displayStocks(const QStringList& stockInfoList) {
     ui->stockList->clear();
-    if (!stocks.isEmpty()) {
-        ui->stockList->setPlainText(stocks.join("\n") + "\n\nTotal stocks found: " + QString::number(stocks.size()));
+    if (!stockInfoList.isEmpty()) {
+        ui->stockList->setPlainText(stockInfoList.join("\n") +
+                                    "\n\nTotal stocks found: " + QString::number(stockInfoList.size()));
     } else {
         ui->stockList->setPlainText("No stocks found within the specified budget.");
     }
