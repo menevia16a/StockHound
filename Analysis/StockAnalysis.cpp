@@ -72,7 +72,7 @@ double StockAnalysis::calculateBBScore(double price, double lowerBand, double up
     return 1.0 - (price - lowerBand) / (upperBand - lowerBand);
 }
 
-double StockAnalysis::calculateTotalScore(double price, const std::vector<double>& prices, int period) {
+std::vector<double> StockAnalysis::calculateTotalScores(double price, const std::vector<double>& prices, int period) {
     // Calculate indicators
     double movingAverage = calculateMovingAverage(prices, period);
     double rsi = calculateRSI(prices, period);
@@ -83,7 +83,11 @@ double StockAnalysis::calculateTotalScore(double price, const std::vector<double
     double rsiScore = calculateRSIScore(rsi) * 0.3;
     double bbScore = calculateBBScore(price, lowerBand, upperBand) * 0.3;
 
-    // Return weighted total score
-    return maScore + rsiScore + bbScore;
+    // Calculate total weighted score
+    double totalScore = maScore + rsiScore + bbScore;
+
+    // Return all values
+    std::vector<double> scores = {maScore, rsiScore, bbScore, totalScore};
+    return scores;
 }
 
