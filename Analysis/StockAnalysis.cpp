@@ -5,9 +5,8 @@
 #include <stdexcept>
 
 std::pair<double, double> StockAnalysis::calculateBollingerBands(const std::vector<double>& prices, int period, double numStdDev) {
-    if (prices.size() < period) {
+    if (prices.size() < period)
         throw std::invalid_argument("Not enough data to calculate Bollinger Bands");
-    }
 
     double movingAverage = calculateMovingAverage(prices, period);
     double sumSquares = 0.0;
@@ -25,9 +24,8 @@ std::pair<double, double> StockAnalysis::calculateBollingerBands(const std::vect
 }
 
 double StockAnalysis::calculateMovingAverage(const std::vector<double>& prices, int period) {
-    if (prices.size() < period) {
+    if (prices.size() < period)
         throw std::invalid_argument("Not enough data to calculate Moving Average");
-    }
 
     double sum = std::accumulate(prices.end() - period, prices.end(), 0.0);
 
@@ -35,25 +33,24 @@ double StockAnalysis::calculateMovingAverage(const std::vector<double>& prices, 
 }
 
 double StockAnalysis::calculateRSI(const std::vector<double>& prices, int period) {
-    if (prices.size() <= period) {
+    if (prices.size() <= period)
         throw std::invalid_argument("Not enough data to calculate RSI");
-    }
 
     double gain = 0.0, loss = 0.0;
 
     for (size_t i = prices.size() - period; i < prices.size() - 1; ++i) {
         double change = prices[i + 1] - prices[i];
-        if (change > 0) {
+        if (change > 0)
             gain += change;
-        } else {
+        else
             loss -= change;
-        }
     }
 
     double avgGain = gain / period;
     double avgLoss = loss / period;
 
-    if (avgLoss == 0) return 100.0;
+    if (avgLoss == 0)
+        return 100.0;
 
     double rs = avgGain / avgLoss;
 
@@ -87,7 +84,8 @@ std::vector<double> StockAnalysis::calculateTotalScores(double price, const std:
     double totalScore = maScore + rsiScore + bbScore;
 
     // Return all values
-    std::vector<double> scores = {maScore, rsiScore, bbScore, totalScore};
+    std::vector<double> scores = { maScore, rsiScore, bbScore, totalScore };
+
     return scores;
 }
 

@@ -25,11 +25,6 @@ private slots:
 private:
     Ui::MainWindow *ui;
 
-    const std::string exchange = "NYSE";
-    const std::string userAgent = "StockHound/1.0";
-
-    void addRowToTable(const QString& name, const QString& ticker, double price, double ma_score, double rsi_score, double bb_score, double total_score);
-
     struct StockInformation {
         std::string Name;
         double Price;
@@ -38,6 +33,16 @@ private:
         double BB_Score;
         double Total_Score;
     };
+
+    const std::string exchange = "NYSE";
+    const std::string userAgent = "StockHound/1.0";
+
+    // Map to store all stock information
+    std::unordered_map<std::string, StockInformation> stockInfoMap;
+
+    void refreshStockList();
+    void addRowToTable(const QString& name, const QString& ticker, double price, double ma_score, double rsi_score, double bb_score, double total_score);
+    void updateScoresDatabase(const std::string symbol, const std::vector<double> scores);
 };
 
 #endif // MAINWINDOW_H

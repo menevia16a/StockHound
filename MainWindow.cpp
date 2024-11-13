@@ -7,6 +7,7 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QVariant>
 #include <QDateTime>
 #include <iostream>
 #include <QMessageBox>
@@ -88,11 +89,11 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     }
 
     if (!createScoresDatabaseQuery.exec("CREATE TABLE IF NOT EXISTS scores ("
-                                        "symbol TEXT PRIMARY KEY, "     // Stock symbol
-                                        "ma_score INTEGER, "            // Moving Average Score
-                                        "rsi_score INTEGER, "           // Relative Strength Index Score
-                                        "bb_score INTEGER, "            // Bollinger Bands Score
-                                        "total_score INTEGER)")) {      // Total Weighted Score
+                                        "symbol TEXT PRIMARY KEY, "           // Stock symbol
+                                        "ma_score REAL NOT NULL, "            // Moving Average Score
+                                        "rsi_score REAL NOT NULL, "           // Relative Strength Index Score
+                                        "bb_score REAL NOT NULL, "            // Bollinger Bands Score
+                                        "total_score REAL NOT NULL)")) {      // Total Weighted Score
         QMessageBox::critical(this, "Database Error", "Query execution failed:" + createScoresDatabaseQuery.lastError().text());
 
         return;
@@ -137,8 +138,6 @@ void MainWindow::onSearchButtonClicked() {
     for (const auto& asset : assets)
         symbols.push_back(asset.symbol);
 
-    // Map to store all stock information
-    std::unordered_map<std::string, StockInformation> stockInfoMap;
     std::vector<std::string> foundSymbols;
     std::vector<std::string> notFoundSymbols;
 
@@ -227,19 +226,19 @@ void MainWindow::onSearchButtonClicked() {
                 }
 
                 // Fetch historical data
-                int period = 20; // 20 Day period
+                int period = 30; // 1 month
                 std::vector<double> priceHistory;
                 std::vector<std::string> symbolVec = {symbol}; // Prepare the symbol in a vector for getBars
 
-                // Calculate the date range
-                QDateTime endDate = QDateTime::currentDateTime();
-                QDateTime startDate = endDate.addDays(-period);
+                // Adjust date range to avoid recent SIP data
+                QDateTime endDate = QDateTime::currentDateTime().addDays(-1); // Set endDate to 1 day ago
+                QDateTime startDate = endDate.addDays(-period); // Start date is 20 days before the adjusted end date
 
-                // Convert dates to ISO format strings (Alpaca expects "YYYY-MM-DD")
-                std::string end = endDate.toString("yyyy-MM-dd").toStdString();
-                std::string start = startDate.toString("yyyy-MM-dd").toStdString();
+                // Convert dates to ISO format strings with time (Alpaca expects "YYYY-MM-DDTHH:MM:SSZ")
+                std::string end = endDate.toUTC().toString(Qt::ISODate).toStdString();
+                std::string start = startDate.toUTC().toString(Qt::ISODate).toStdString();
 
-                // Fetch the bars data using the date range
+                // Fetch the bars data using the adjusted date range
                 auto [barStatus, bars] = client.getBars(symbolVec, start, end, "", "", "1D", period, userAgent);
 
                 if (barStatus.ok()) {
@@ -271,37 +270,50 @@ void MainWindow::onSearchButtonClicked() {
                             }
                         }
                     }
-                    else {
+                    else
                         std::cerr << "No bars found for symbol " << symbol << std::endl;
-
-                        continue; // Skip this stock if no bars are found
-                    }
                 }
-                else {
+                else
                     std::cerr << "API Error fetching bars for " << symbol << ": " << barStatus.getMessage() << std::endl;
 
-                    continue; // Skip this stock if historical data fails
-                }
+                if (priceHistory.size() < period)
+                {
+                    // Skip calculation since not enough data, insert 0.00 for the scores database
+                    StockInformation info;
+                    std::vector<double> scores = { 0.00, 0.00, 0.00, 0.00 };
 
-                if (priceHistory.size() < period) {
+                    info.Name = asset.name;
+                    info.Price = price;
+                    info.MA_Score = scores[0];
+                    info.RSI_Score = scores[1];
+                    info.BB_Score = scores[2];
+                    info.Total_Score = scores[3];
+                    stockInfoMap.emplace(symbol, info);
+                    updateScoresDatabase(symbol, scores);
                     std::cerr << "Not enough historical data for " << symbol << std::endl;
 
-                    continue; // Skip stocks without enough data
+                    continue;
                 }
 
                 // Calculate total score
-                std::vector<double> scores = StockAnalysis::calculateTotalScores(price, priceHistory, period);
+                try {
+                    std::vector<double> scores = StockAnalysis::calculateTotalScores(price, priceHistory, period);
 
-                // Store score information for the UI
-                StockInformation info;
+                    // Store score information for the UI
+                    StockInformation info;
+                    info.Name = asset.name;
+                    info.Price = price;
+                    info.MA_Score = scores[0];
+                    info.RSI_Score = scores[1];
+                    info.BB_Score = scores[2];
+                    info.Total_Score = scores[3];
+                    stockInfoMap.emplace(symbol, info);
+                    updateScoresDatabase(symbol, scores);
+                } catch (const std::exception& e) {
+                    QMessageBox::warning(this, "Calculation Error", QString("Error calculating scores for symbol %1: %2").arg(QString::fromStdString(symbol), e.what()));
 
-                info.Name = asset.name;
-                info.Price = price;
-                info.MA_Score = scores[0];
-                info.RSI_Score = scores[1];
-                info.BB_Score = scores[2];
-                info.Total_Score = scores[3];
-                stockInfoMap.emplace(symbol, info);
+                    continue; // Skip to the next symbol
+                }
             }
 
             // Log trades data to see if it's returning as expected
@@ -327,23 +339,22 @@ void MainWindow::onSearchButtonClicked() {
             stocksSelectQuery.prepare("SELECT * FROM stocks WHERE symbol = :symbol LIMIT 1");
             stocksSelectQuery.bindValue(":symbol", QString::fromStdString(foundSymbol));
 
-            if (stocksSelectQuery.exec()) {
-                stockName = stocksSelectQuery.value(1).toString().toStdString();
+            if (stocksSelectQuery.exec() && stocksSelectQuery.next()) {
+                stockName = stocksSelectQuery.value("name").toString().toStdString();
 
                 tradesSelectQuery.prepare("SELECT * FROM trades WHERE symbol = :symbol LIMIT 1");
                 tradesSelectQuery.bindValue(":symbol", QString::fromStdString(foundSymbol));
 
-                if (tradesSelectQuery.exec()) {
-                    stockPrice = tradesSelectQuery.value(1).toDouble();
-
+                if (tradesSelectQuery.exec() && tradesSelectQuery.next()) {
+                    stockPrice = tradesSelectQuery.value("price").toDouble();
                     scoresSelectQuery.prepare("SELECT * FROM scores WHERE symbol = :symbol LIMIT 1");
                     scoresSelectQuery.bindValue(":symbol", QString::fromStdString(foundSymbol));
 
-                    if (scoresSelectQuery.exec()) {
-                        maScore = scoresSelectQuery.value(1).toDouble();
-                        rsiScore = scoresSelectQuery.value(2).toDouble();
-                        bbScore = scoresSelectQuery.value(3).toDouble();
-                        totalScore = scoresSelectQuery.value(4).toDouble();
+                    if (scoresSelectQuery.exec() && scoresSelectQuery.next()) {
+                        maScore = scoresSelectQuery.value("ma_score").toDouble();
+                        rsiScore = scoresSelectQuery.value("rsi_score").toDouble();
+                        bbScore = scoresSelectQuery.value("bb_score").toDouble();
+                        totalScore = scoresSelectQuery.value("total_score").toDouble();
 
                         // Put data into the stockInfoMap for this symbol
                         StockInformation info;
@@ -355,6 +366,11 @@ void MainWindow::onSearchButtonClicked() {
                         info.BB_Score = bbScore;
                         info.Total_Score = totalScore;
                         stockInfoMap.emplace(foundSymbol, info);
+
+                        // Initialize the scores vector with the appropriate scores
+                        std::vector<double> scores = { info.MA_Score, info.RSI_Score, info.BB_Score, info.Total_Score };
+
+                        updateScoresDatabase(foundSymbol, scores);
                     }
                     else {
                         QMessageBox::critical(this, "Database Error", "Query execution failed:" + scoresSelectQuery.lastError().text());
@@ -376,21 +392,36 @@ void MainWindow::onSearchButtonClicked() {
         }
     }
 
-    // Look for the symbols in the map to find the stock's data
-    for (const std::string& symbol : symbols) {
-        auto it = stockInfoMap.find(symbol);
-
-        if (it != stockInfoMap.end()) {
-            // Entry found in map, add row to the UI
-            StockInformation stockData = it->second;
-
-            addRowToTable(QString::fromStdString(stockData.Name), QString::fromStdString(symbol), stockData.Price, stockData.MA_Score, stockData.RSI_Score, stockData.BB_Score, stockData.Total_Score);
-        }
-    }
+    refreshStockList();
 }
 
 MainWindow::~MainWindow() {
     delete ui;
+}
+
+void MainWindow::refreshStockList() {
+    // Clear the existing rows
+    QStandardItemModel *model = qobject_cast<QStandardItemModel *>(ui->stockList->model());
+
+    if (model)
+        model->removeRows(0, model->rowCount());  // Clear any previous entries
+
+    // Re-populate the table from the latest stockInfoMap data
+    for (const auto& [symbol, stockData] : stockInfoMap) {
+        addRowToTable(
+            QString::fromStdString(stockData.Name),
+            QString::fromStdString(symbol),
+            stockData.Price,
+            stockData.MA_Score,
+            stockData.RSI_Score,
+            stockData.BB_Score,
+            stockData.Total_Score
+        );
+    }
+
+    // Notify the model that data has been changed to refresh the UI
+    if (model)
+        emit model->layoutChanged();
 }
 
 void MainWindow::addRowToTable(const QString& name, const QString& ticker, double price, double ma_score, double rsi_score, double bb_score, double total_score) {
@@ -404,8 +435,38 @@ void MainWindow::addRowToTable(const QString& name, const QString& ticker, doubl
     row << new QStandardItem(QString::number(bb_score, 'f', 2));
     row << new QStandardItem(QString::number(total_score, 'f', 2));
 
-    QStandardItemModel *model = qobject_cast<QStandardItemModel *>(ui->stockList->model());
+    QStandardItemModel* model = qobject_cast<QStandardItemModel*>(ui->stockList->model());
 
     if (model)
         model->appendRow(row);
+}
+
+void MainWindow::updateScoresDatabase(const std::string symbol, const std::vector<double> scores) {
+    // Ensure that the scores vector has the expected number of elements
+    if (scores.size() != 4) {
+        QMessageBox::critical(this, "Database Error", "Scores vector does not contain the correct number of elements.");
+
+        return;
+    }
+
+    QSqlQuery query;
+
+    query.prepare("INSERT OR REPLACE INTO scores (symbol, ma_score, rsi_score, bb_score, total_score) "
+                  "VALUES (:symbol, :ma_score, :rsi_score, :bb_score, :total_score)"
+    );
+
+    // Bind values to the query
+    query.bindValue(":symbol", QString::fromStdString(symbol));
+    query.bindValue(":ma_score", scores[0]);
+    query.bindValue(":rsi_score", scores[1]);
+    query.bindValue(":bb_score", scores[2]);
+    query.bindValue(":total_score", scores[3]);
+
+    // Execute the query and check for errors
+    if (!query.exec()) {
+        QMessageBox::critical(this, "Database Error", "Failed to update scores database: " + query.lastError().text());
+        std::cout << "Query Error:" << query.lastError().text().toStdString() << std::endl;
+    }
+    else
+        std::cout << "Scores for symbol" << symbol << "successfully updated in the database." << std::endl;
 }
