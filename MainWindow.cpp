@@ -1,10 +1,10 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include "Analysis/PriceValidator.h"
 #include "ThirdParty/alpaca-trade-api-cpp/alpaca/client.h"
 #include "ThirdParty/alpaca-trade-api-cpp/alpaca/config.h"
 
 #include <nlohmann/json.hpp>
-#include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QVariant>
@@ -24,7 +24,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     connect(ui->searchButton, &QPushButton::clicked, this, &MainWindow::onSearchButtonClicked);
 
     // Create model for stocks table view
-    QStandardItemModel *model = new QStandardItemModel(this);
+    QStandardItemModel* model = new QStandardItemModel(this);
 
     // Setup the table
     ui->stockList->setModel(model);
@@ -39,7 +39,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->stockList->setColumnWidth(0, 178);
 
     // Set up SQLite database connection
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName("cache.db");
 
     if (!db.open()) {
@@ -104,6 +104,7 @@ void MainWindow::onSearchButtonClicked() {
     QString budgetText = ui->budgetInput->text();
     bool isNumber;
     double budget = budgetText.toDouble(&isNumber);
+    PriceValidator validator(db); // Class to validate pricing data
 
     if (!isNumber || budget <= 0) {
         QMessageBox::warning(this, "Invalid Input", "Please enter a valid budget.");
@@ -232,7 +233,7 @@ void MainWindow::onSearchButtonClicked() {
 
                 // Adjust date range to avoid recent SIP data
                 QDateTime endDate = QDateTime::currentDateTime().addDays(-1); // Set endDate to 1 day ago
-                QDateTime startDate = endDate.addDays(-period); // Start date is 20 days before the adjusted end date
+                QDateTime startDate = endDate.addDays(-period); // Start date is 30 days before the adjusted end date
 
                 // Convert dates to ISO format strings with time (Alpaca expects "YYYY-MM-DDTHH:MM:SSZ")
                 std::string end = endDate.toUTC().toString(Qt::ISODate).toStdString();
@@ -276,8 +277,9 @@ void MainWindow::onSearchButtonClicked() {
                 else
                     std::cerr << "API Error fetching bars for " << symbol << ": " << barStatus.getMessage() << std::endl;
 
-                if (priceHistory.size() < period)
-                {
+                validator.validateAndCorrectPrices();
+
+                if (priceHistory.size() < 10) {
                     // Skip calculation since not enough data, insert 0.00 for the scores database
                     StockInformation info;
                     std::vector<double> scores = { 0.00, 0.00, 0.00, 0.00 };
@@ -297,7 +299,7 @@ void MainWindow::onSearchButtonClicked() {
 
                 // Calculate total score
                 try {
-                    std::vector<double> scores = StockAnalysis::calculateTotalScores(price, priceHistory, period);
+                    std::vector<double> scores = StockAnalysis::calculateTotalScores(price, priceHistory, (priceHistory.size() - 1));
 
                     // Store score information for the UI
                     StockInformation info;
@@ -392,6 +394,8 @@ void MainWindow::onSearchButtonClicked() {
         }
     }
 
+    validator.revalidateSuspiciousScores();
+    db.close(); // Close the database connection
     refreshStockList();
 }
 
@@ -401,7 +405,7 @@ MainWindow::~MainWindow() {
 
 void MainWindow::refreshStockList() {
     // Clear the existing rows
-    QStandardItemModel *model = qobject_cast<QStandardItemModel *>(ui->stockList->model());
+    QStandardItemModel* model = qobject_cast<QStandardItemModel *>(ui->stockList->model());
 
     if (model)
         model->removeRows(0, model->rowCount());  // Clear any previous entries
@@ -467,6 +471,4 @@ void MainWindow::updateScoresDatabase(const std::string symbol, const std::vecto
         QMessageBox::critical(this, "Database Error", "Failed to update scores database: " + query.lastError().text());
         std::cout << "Query Error:" << query.lastError().text().toStdString() << std::endl;
     }
-    else
-        std::cout << "Scores for symbol" << symbol << "successfully updated in the database." << std::endl;
 }

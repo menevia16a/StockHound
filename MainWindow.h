@@ -3,6 +3,7 @@
 
 #include "Analysis/StockAnalysis.h"
 
+#include <QSqlDatabase>
 #include <QMainWindow>
 #include <QStringList>
 
@@ -16,14 +17,15 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
 
 private slots:
     void onSearchButtonClicked();
 
 private:
-    Ui::MainWindow *ui;
+    Ui::MainWindow* ui;
+    QSqlDatabase db;
 
     struct StockInformation {
         std::string Name;
