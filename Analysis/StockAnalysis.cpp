@@ -5,22 +5,30 @@
 #include <stdexcept>
 
 std::pair<double, double> StockAnalysis::calculateBollingerBands(const std::vector<double>& prices, int period, double numStdDev) {
-    if (prices.size() < period)
+    // if we don't have enough data yet, just use whatever we have
+    int usePeriod = std::min<int>(period, prices.size());
+
+    if (usePeriod < 2)
         throw std::invalid_argument("Not enough data to calculate Bollinger Bands");
 
-    double movingAverage = calculateMovingAverage(prices, period);
+    // compute moving average over the last usePeriod points
+    double sum = std::accumulate(prices.end() - usePeriod, prices.end(), 0.0);
+    double movingAverage = sum / usePeriod;
+
+    // compute (population) std-dev
     double sumSquares = 0.0;
 
-    for (size_t i = prices.size() - period; i < prices.size(); ++i) {
-        double diff = prices[i] - movingAverage;
+    for (auto it = prices.end() - usePeriod; it != prices.end(); ++it) {
+        double diff = *it - movingAverage;
         sumSquares += diff * diff;
     }
 
-    double stdDev = std::sqrt(sumSquares / period);
+    double stdDev = std::sqrt(sumSquares / usePeriod);
+
     double upperBand = movingAverage + numStdDev * stdDev;
     double lowerBand = movingAverage - numStdDev * stdDev;
 
-    return {upperBand, lowerBand};
+    return { upperBand, lowerBand };
 }
 
 double StockAnalysis::calculateMovingAverage(const std::vector<double>& prices, int period) {
@@ -33,13 +41,14 @@ double StockAnalysis::calculateMovingAverage(const std::vector<double>& prices, 
 }
 
 double StockAnalysis::calculateRSI(const std::vector<double>& prices, int period) {
-    if (prices.size() <= period)
+    if (prices.size() < period)
         throw std::invalid_argument("Not enough data to calculate RSI");
 
     double gain = 0.0, loss = 0.0;
 
     for (size_t i = prices.size() - period; i < prices.size() - 1; ++i) {
         double change = prices[i + 1] - prices[i];
+
         if (change > 0)
             gain += change;
         else

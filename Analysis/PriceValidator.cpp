@@ -36,8 +36,8 @@ void PriceValidator::validateAndCorrectPrices() const {
 void PriceValidator::revalidateSuspiciousScores() const {
     QSqlQuery query(db);
 
-    // Step 1: Identify all stocks with total_score >= 1.3
-    if (!query.exec("SELECT symbol, total_score FROM scores WHERE total_score >= 1.3")) {
+    // Step 1: Identify all stocks with total_score >= 1
+    if (!query.exec("SELECT symbol, total_score FROM scores WHERE total_score >= 1")) {
         std::cerr << "Failed to fetch suspicious scores: " << query.lastError().text().toStdString() << std::endl;
 
         return;
@@ -63,13 +63,6 @@ void PriceValidator::revalidateSuspiciousScores() const {
 
         while (historicalQuery.next())
             priceHistory.push_back(historicalQuery.value("close").toDouble());
-
-        // Ensure we have enough data for meaningful analysis
-        if (priceHistory.size() < 10) {
-            std::cerr << "Insufficient historical data for " << symbol.toStdString() << std::endl;
-
-            continue;
-        }
 
         // Step 3: Fetch the latest trade price
         QSqlQuery tradeQuery(db);
@@ -110,6 +103,8 @@ void PriceValidator::revalidateSuspiciousScores() const {
             std::cerr << "Error recalculating scores for " << symbol.toStdString() << ": " << e.what() << std::endl;
         }
     }
+
+    removeSuspiciousEntries();
 }
 
 // Private helper method to fetch the latest closing price for a stock
@@ -144,3 +139,70 @@ void PriceValidator::updateTradePrice(const QString& symbol, double correctedPri
     else
         std::cout << "Updated trade price for " << symbol.toStdString() << " to " << correctedPrice << std::endl;
 }
+
+// Private helper method to remove entires that are too good to be true.
+void PriceValidator::removeSuspiciousEntries() const {
+    // Prepare a query to select all entries with total_score >= 1.3
+    QSqlQuery selectQuery(db);
+
+    selectQuery.prepare("SELECT symbol FROM scores WHERE total_score >= 1.3");
+
+    if (!selectQuery.exec()) {
+        std::cerr << "Failed to fetch suspicious entries: " << selectQuery.lastError().text().toStdString() << std::endl;
+
+        return;
+    }
+
+    // Iterate through the results and remove related entries
+    while (selectQuery.next()) {
+        QString symbol = selectQuery.value(0).toString();
+
+        // Remove from the scores table
+        QSqlQuery deleteScoresQuery(db);
+
+        deleteScoresQuery.prepare("DELETE FROM scores WHERE symbol = :symbol");
+        deleteScoresQuery.bindValue(":symbol", symbol);
+
+        if (!deleteScoresQuery.exec()) {
+            std::cerr << "Failed to delete score for symbol " << symbol.toStdString() << ": " << deleteScoresQuery.lastError().text().toStdString() << std::endl;
+
+            continue;
+        }
+
+        // Remove from the trades table
+        QSqlQuery deleteTradesQuery(db);
+
+        deleteTradesQuery.prepare("DELETE FROM trades WHERE symbol = :symbol");
+        deleteTradesQuery.bindValue(":symbol", symbol);
+
+        if (!deleteTradesQuery.exec()) {
+            std::cerr << "Failed to delete trade for symbol " << symbol.toStdString() << ": " << deleteTradesQuery.lastError().text().toStdString() << std::endl;
+
+            continue;
+        }
+
+        // Remove from the historical_data table
+        QSqlQuery deleteHistoricalQuery(db);
+
+        deleteHistoricalQuery.prepare("DELETE FROM historical_data WHERE symbol = :symbol");
+        deleteHistoricalQuery.bindValue(":symbol", symbol);
+
+        if (!deleteHistoricalQuery.exec()) {
+            std::cerr << "Failed to delete historical data for symbol " << symbol.toStdString() << ": " << deleteHistoricalQuery.lastError().text().toStdString() << std::endl;
+
+            continue;
+        }
+
+        // Remove from the stocks table
+        QSqlQuery deleteStocksQuery(db);
+
+        deleteStocksQuery.prepare("DELETE FROM stocks WHERE symbol = :symbol");
+        deleteStocksQuery.bindValue(":symbol", symbol);
+
+        if (!deleteStocksQuery.exec())
+            std::cerr << "Failed to delete stock for symbol " << symbol.toStdString() << ": " << deleteStocksQuery.lastError().text().toStdString() << std::endl;
+    }
+
+    std::cout << "Suspicious entries successfully removed." << std::endl;
+}
+
