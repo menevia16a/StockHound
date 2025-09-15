@@ -18,7 +18,6 @@ private:
     double getLatestClosingPrice(const QString& symbol) const;
 
     void updateTradePrice(const QString& symbol, double correctedPrice) const;
-    void removeSuspiciousEntries() const;
 };
 
 #endif // PRICEVALIDATOR_H

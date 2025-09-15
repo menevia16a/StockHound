@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include "Analysis/StockAnalysis.h"
-#include "Analysis/PriceValidator.h"
 
 #include <QSqlDatabase>
 #include <QMainWindow>
@@ -29,8 +28,6 @@ private:
 
     QSqlDatabase db;
 
-    PriceValidator* validator;
-
     struct StockInformation {
         std::string Name;
         double Price;
@@ -46,7 +43,7 @@ private:
     // Map to store all stock information
     std::unordered_map<std::string, StockInformation> stockInfoMap;
 
-    void refreshStockList(PriceValidator* validator);
+    void refreshStockList();
     void addRowToTable(const QString& name, const QString& ticker, double price, double ma_score, double rsi_score, double bb_score, double total_score);
     void updateScoresDatabase(const std::string symbol, const std::vector<double> scores);
 };

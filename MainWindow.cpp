@@ -46,8 +46,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         return;
     }
 
-    validator = new PriceValidator(db);
-
     // Create table for caching if it doesn't exist
     QSqlQuery createStocksDatabaseQuery(db);
     QSqlQuery createTradesDatabaseQuery(db);
@@ -299,7 +297,6 @@ void MainWindow::onSearchButtonClicked() {
                     }
                 }
 
-
                 // Calculate scores
                 try {
                     QSqlQuery getStockExclusionStatusQuery(db);
@@ -414,19 +411,14 @@ void MainWindow::onSearchButtonClicked() {
         }
     }
 
-    validator->validateAndCorrectPrices();
-    refreshStockList(validator);
+    refreshStockList();
 }
 
 MainWindow::~MainWindow() {
     delete ui;
-    delete validator;
 }
 
-void MainWindow::refreshStockList(PriceValidator* validator) {
-    // Revalidate to clean up discrepancies
-    validator->revalidateSuspiciousScores();
-
+void MainWindow::refreshStockList() {
     // Clear the existing rows
     QStandardItemModel* model = qobject_cast<QStandardItemModel*>(ui->stockList->model());
 

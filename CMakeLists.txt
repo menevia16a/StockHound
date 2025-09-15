@@ -29,7 +29,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES} 
         Analysis/StockAnalysis.h Analysis/StockAnalysis.cpp
-        Analysis/PriceValidator.h Analysis/PriceValidator.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET StockHound APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
