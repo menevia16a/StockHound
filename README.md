@@ -86,7 +86,7 @@ cd StockHound
 ### 4. Configure with CMake
 Replace `<path-to-vcpkg>` with your vcpkg folder path:
 ```powershell
-cmake .. -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>/scripts/buildsystems/vcpkg.cmake -G "Visual Studio 17 2022" -A x64
+cmake .. -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>\scripts\buildsystems\vcpkg.cmake -G "Visual Studio 17 2022" -A x64
 ```
 
 ### 5. Build
