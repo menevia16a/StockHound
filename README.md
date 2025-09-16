@@ -107,6 +107,58 @@ After building:
 
 ---
 
+# Setting Up Environment Variables
+
+StockHound requires a few environment variables to interact with the Alpaca API. Two are **required** and two are **optional**.
+
+## Required
+
+1. **`APCA_API_KEY_ID`**
+   Your Alpaca API key ID.
+
+2. **`APCA_API_SECRET_KEY`**
+   Your Alpaca API secret key.
+
+## Optional
+
+1. **`APCA_API_BASE_URL`**
+   Base URL for the Alpaca API. Defaults to:
+
+   ```
+   https://api.alpaca.markets
+   ```
+
+2. **`APCA_API_DATA_URL`**
+   Base URL for the Alpaca data API. Defaults to:
+
+   ```
+   https://data.alpaca.markets
+   ```
+
+## Setting Environment Variables
+
+### Linux / macOS (bash/zsh)
+
+```bash
+export APCA_API_KEY_ID="your_api_key_id_here"
+export APCA_API_SECRET_KEY="your_api_secret_key_here"
+export APCA_API_BASE_URL="https://api.alpaca.markets"        # optional
+export APCA_API_DATA_URL="https://data.alpaca.markets"       # optional
+```
+
+### Windows (PowerShell)
+
+```powershell
+$Env:APCA_API_KEY_ID="your_api_key_id_here"
+$Env:APCA_API_SECRET_KEY="your_api_secret_key_here"
+$Env:APCA_API_BASE_URL="https://api.alpaca.markets"          # optional
+$Env:APCA_API_DATA_URL="https://data.alpaca.markets"         # optional
+```
+
+> **Note:** You must set the required variables before running StockHound, otherwise the application will not be able to connect to Alpaca.
+
+---
+
 ## ⚡ Development Notes
 - Use **Debug** build configuration for development and testing.
 - On Linux, you can enable debugging via `-DCMAKE_BUILD_TYPE=Debug`.
