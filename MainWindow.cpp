@@ -441,8 +441,6 @@ void MainWindow::onSearchButtonClicked() {
 
                         if (!isExcluded)
                             stockInfoMap.emplace(foundSymbol, info);
-
-                        stockInfoMap.emplace(foundSymbol, info);
                     }
                     else {
                         QMessageBox::critical(this, "Database Error", "Query execution failed:" + scoresSelectQuery.lastError().text());
@@ -473,7 +471,13 @@ MainWindow::~MainWindow() {
 
 void MainWindow::refreshStockList() {
     // Clear the existing rows
-    QStandardItemModel* model = qobject_cast<QStandardItemModel*>(ui->stockList->model());
+    QSortFilterProxyModel* proxy = qobject_cast<QSortFilterProxyModel*>(ui->stockList->model());
+
+    if (!proxy) return;
+
+    QStandardItemModel* model = qobject_cast<QStandardItemModel*>(proxy->sourceModel());
+
+    if (!model) return;
 
     if (model)
         model->removeRows(0, model->rowCount());  // Clear any previous entries
@@ -496,8 +500,6 @@ void MainWindow::refreshStockList() {
         emit model->layoutChanged();
 
         // Force sorting by Total Score (column 6), descending
-        QSortFilterProxyModel* proxy = qobject_cast<QSortFilterProxyModel*>(ui->stockList->model());
-
         if (proxy)
             proxy->sort(6, Qt::DescendingOrder);
     }
@@ -514,10 +516,15 @@ void MainWindow::addRowToTable(const QString& name, const QString& ticker, doubl
     row << new QStandardItem(QString::number(bb_score, 'f', 2));
     row << new QStandardItem(QString::number(total_score, 'f', 2));
 
-    QStandardItemModel* model = qobject_cast<QStandardItemModel*>(ui->stockList->model());
+    QSortFilterProxyModel* proxy = qobject_cast<QSortFilterProxyModel*>(ui->stockList->model());
 
-    if (model)
-        model->appendRow(row);
+    if (!proxy) return;
+
+    QStandardItemModel* model = qobject_cast<QStandardItemModel*>(proxy->sourceModel());
+
+    if (!model) return;
+
+    model->appendRow(row);
 }
 
 void MainWindow::updateScoresDatabase(const std::string symbol, const std::vector<double> scores) {
@@ -551,7 +558,7 @@ void MainWindow::updateScoresDatabase(const std::string symbol, const std::vecto
 }
 
 void MainWindow::excludeSuspiciousScores() {
-    // TODO: Mark any symbol with a total score >=1.1 as excluded
+    // Mark any symbol with a total score >=1.1 as excluded
     QSqlQuery finalScoreCheckQuery(db);
 
     finalScoreCheckQuery.prepare("SELECT * FROM scores WHERE total_score >= 1.1"); // Any score over 1.1 is considered erroneous
@@ -564,8 +571,8 @@ void MainWindow::excludeSuspiciousScores() {
     }
 
     while (finalScoreCheckQuery.next()) {
-        QString symbol = finalScoreCheckQuery.value("smybol").toString();
-        double totalScore = finalScoreCheckQuery.value("toal_score").toDouble();
+        QString symbol = finalScoreCheckQuery.value("symbol").toString();
+        double totalScore = finalScoreCheckQuery.value("total_score").toDouble();
 
         if (totalScore >= static_cast<double>(1.1)) {
             QSqlQuery markExcludedQuery(db);
