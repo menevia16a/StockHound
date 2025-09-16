@@ -69,12 +69,12 @@ cmake --build build
 ```powershell
 git clone https://github.com/microsoft/vcpkg.git
 cd vcpkg
-.bootstrap-vcpkg.bat
+.\bootstrap-vcpkg.bat
 ```
 
 ### 2. Install dependencies
 ```powershell
-.vcpkg install qt6-base:x64-windows sqlite3:x64-windows curl:x64-windows nlohmann-json:x64-windows
+.\vcpkg install qt5-base:x64-windows sqlite3:x64-windows curl:x64-windows nlohmann-json:x64-windows
 ```
 
 ### 3. Clone the repository
@@ -86,7 +86,7 @@ cd StockHound
 ### 4. Configure with CMake
 Replace `<path-to-vcpkg>` with your vcpkg folder path:
 ```powershell
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>\scripts\buildsystems\vcpkg.cmake -G "Visual Studio 17 2022"
+cmake .. -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>/scripts/buildsystems/vcpkg.cmake -G "Visual Studio 17 2022" -A x64
 ```
 
 ### 5. Build

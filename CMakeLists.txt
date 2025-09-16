@@ -2,91 +2,74 @@ cmake_minimum_required(VERSION 3.5)
 
 project(StockHound VERSION 1.0 LANGUAGES CXX)
 
+# Enable Qt automations
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
+# Use C++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools Sql)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools Sql)
+# Find Qt5 packages
+find_package(Qt5 REQUIRED COMPONENTS Widgets LinguistTools Sql)
 
+# Translation files
 set(TS_FILES StockHound_en_US.ts)
 
+# Project sources
 set(PROJECT_SOURCES
     Main.cpp
-        MainWindow.cpp
-        MainWindow.h
-        MainWindow.ui
-        ${TS_FILES}
+    MainWindow.cpp
+    MainWindow.h
+    MainWindow.ui
+    Analysis/StockAnalysis.cpp
+    Analysis/StockAnalysis.h
+    ${TS_FILES}
 )
 
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(StockHound
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES} 
-        Analysis/StockAnalysis.h Analysis/StockAnalysis.cpp
-    )
+# Create executable
+add_executable(StockHound ${PROJECT_SOURCES})
 
-    qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
-else()
-    add_executable(StockHound
-        ${PROJECT_SOURCES}
-    )
+# Handle translations
+qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 
-    qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
-endif()
+# Link Qt5
+target_link_libraries(StockHound PRIVATE Qt5::Widgets Qt5::Sql)
 
-target_link_libraries(StockHound PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)
-
+# Windows executable property
 if(WIN32)
     set_target_properties(StockHound PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
+# Installation
 include(GNUInstallDirs)
-
 install(TARGETS StockHound
-    BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(StockHound)
-
-    # On Windows, copy required Qt DLLs after build
-    if(WIN32)
-        find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${Qt6_DIR}/bin")
-
-        if(WINDEPLOYQT_EXECUTABLE)
-            add_custom_command(TARGET StockHound POST_BUILD
-                COMMAND "${WINDEPLOYQT_EXECUTABLE}" --release $<TARGET_FILE:StockHound>
-                COMMENT "Running windeployqt to bundle Qt runtime libraries"
-            )
-        endif()
-    endif()
-endif()
-
-# StockHound required libraries
+# Third-party libraries
 add_subdirectory(ThirdParty/alpaca-trade-api-cpp)
 
 find_package(SQLite3 REQUIRED)
 find_package(CURL REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
-# Enforce UTF-8 for MSVC, and treat warnings as errors
+target_link_libraries(StockHound PRIVATE
+    alpaca
+    SQLite::SQLite3
+    CURL::libcurl
+    nlohmann_json::nlohmann_json
+)
+
+# Compiler flags
 if(MSVC)
     target_compile_options(StockHound PRIVATE /utf-8 /W4 /WX /permissive-)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 else()
     target_compile_options(StockHound PRIVATE -Wall -Wextra -Werror)
 endif()
-
-target_link_libraries(StockHound PRIVATE alpaca)
-target_link_libraries(StockHound PRIVATE SQLite::SQLite3)
-target_link_libraries(StockHound PRIVATE CURL::libcurl)
-target_link_libraries(StockHound PRIVATE nlohmann_json::nlohmann_json)
 
 # Windows DLL deployment
 if(WIN32)
@@ -99,14 +82,27 @@ if(WIN32)
         )
     endfunction()
 
-    # Try to find the DLL paths for SQLite and CURL
+    # SQLite DLL
     get_target_property(sqlite3_location SQLite::SQLite3 IMPORTED_LOCATION_RELEASE)
+
     if(sqlite3_location)
         copy_runtime_dll(StockHound "${sqlite3_location}")
     endif()
 
+    # CURL DLL
     get_target_property(curl_location CURL::libcurl IMPORTED_LOCATION_RELEASE)
+
     if(curl_location)
         copy_runtime_dll(StockHound "${curl_location}")
+    endif()
+
+    # Qt5 deployment
+    find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "$ENV{VCPKG_ROOT}/installed/x64-windows/tools/qt5/bin")
+
+    if(WINDEPLOYQT_EXECUTABLE)
+        add_custom_command(TARGET StockHound POST_BUILD
+            COMMAND "${WINDEPLOYQT_EXECUTABLE}" --release $<TARGET_FILE:StockHound>
+            COMMENT "Running windeployqt to bundle Qt5 runtime libraries"
+        )
     endif()
 endif()
