@@ -6,6 +6,7 @@
 #include <QMessageBox>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QVariant>
 
 // Constructor implementation
 StockAnalysis::StockAnalysis(QSqlDatabase& database)
@@ -99,7 +100,7 @@ std::vector<double> StockAnalysis::calculateTotalScores(std::string symbol, doub
         QSqlQuery markExcludedQuery(db);
 
         markExcludedQuery.prepare("UPDATE stocks SET excluded = 1 WHERE symbol = :symbol");
-        markExcludedQuery.bindValue(":symbol", QString::fromStdString(symbol));
+        markExcludedQuery.bindValue(":symbol", QVariant(QString::fromStdString(symbol)));
 
         if (!markExcludedQuery.exec())
             QMessageBox::critical(nullptr, "Database Error", "Query execution failed:" + markExcludedQuery.lastError().text());
