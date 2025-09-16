@@ -13,7 +13,7 @@ StockAnalysis::StockAnalysis(QSqlDatabase& database)
 
 std::pair<double, double> StockAnalysis::calculateBollingerBands(const std::vector<double>& prices, int period, double numStdDev) {
     // If not enough data, mark symbol as excluded to prevent it from being rendered.
-    if (prices.size() < (period - 10))
+    if (prices.size() < static_cast<size_t>((period - 10)))
         return { static_cast<double>(-1), static_cast<double>(-1)}; // Return invalid to the calling function
 
     // Compute moving average over the last period points
@@ -38,7 +38,7 @@ std::pair<double, double> StockAnalysis::calculateBollingerBands(const std::vect
 
 double StockAnalysis::calculateMovingAverage(const std::vector<double>& prices, int period) {
     // If not enough data, mark symbol as excluded to prevent it from being rendered.
-    if (prices.size() < (period - 10))
+    if (prices.size() < static_cast<size_t>((period - 10)))
         return static_cast<double>(-1); // Return invalid to the calling function
 
     double sum = std::accumulate(prices.end() - period, prices.end(), 0.0);
@@ -48,7 +48,7 @@ double StockAnalysis::calculateMovingAverage(const std::vector<double>& prices, 
 
 double StockAnalysis::calculateRSI(const std::vector<double>& prices, int period) {
     // If not enough data, mark symbol as excluded to prevent it from being rendered.
-    if (prices.size() < (period - 10))
+    if (prices.size() < static_cast<size_t>((period - 10)))
         return static_cast<double>(-1); // Return invalid to the calling function
 
     double gain = 0.0, loss = 0.0;
