@@ -46,6 +46,7 @@ private:
     void refreshStockList();
     void addRowToTable(const QString& name, const QString& ticker, double price, double ma_score, double rsi_score, double bb_score, double total_score);
     void updateScoresDatabase(const std::string symbol, const std::vector<double> scores);
+    void excludeSuspiciousScores();
 };
 
 #endif // MAINWINDOW_H

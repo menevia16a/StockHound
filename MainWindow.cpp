@@ -136,7 +136,7 @@ void MainWindow::onSearchButtonClicked() {
 
     for (const auto& asset : assets) {
         if (asset.tradable)
-            symbols.push_back(asset.symbol);
+            symbols.push_back(asset.symbol); // Only add assets tradable on Alpaca
     }
 
     std::vector<std::string> foundSymbols;
@@ -164,7 +164,7 @@ void MainWindow::onSearchButtonClicked() {
             qint64 lastUpdatedTimestamp = lastUpdated.toLongLong();
             qint64 currentTimestamp = QDateTime::currentSecsSinceEpoch();
 
-            if (currentTimestamp - lastUpdatedTimestamp <= 86400) {
+            if (currentTimestamp - lastUpdatedTimestamp <= 172800) { // Data is only considerd valid for 48 hours
                 // Data is up-to-date
                 foundSymbols.push_back(symbolVar.toString().toStdString());
                 symbolFound = true;
@@ -227,7 +227,7 @@ void MainWindow::onSearchButtonClicked() {
                 }
 
                 // Fetch historical data
-                int period = 30; // 1 month
+                int period = 40; // 40 days
                 std::vector<double> priceHistory;
                 std::vector<std::string> symbolVec = {symbol}; // Prepare the symbol in a vector for getBars
 
@@ -287,8 +287,6 @@ void MainWindow::onSearchButtonClicked() {
 
                         if (!markExcludedQuery.exec())
                             QMessageBox::critical(this, "Database Error", "Query execution failed:" + markExcludedQuery.lastError().text());
-
-                        return;
                     }
                     else {
                         std::cerr << "API Error fetching bars for " << symbol << ": " << msg << std::endl;
@@ -300,6 +298,7 @@ void MainWindow::onSearchButtonClicked() {
                 // Calculate scores
                 try {
                     QSqlQuery getStockExclusionStatusQuery(db);
+                    StockAnalysis analyzer(db);
                     bool isExcluded = false;
 
                     getStockExclusionStatusQuery.prepare("SELECT * FROM stocks WHERE symbol = :symbol LIMIT 1");
@@ -315,7 +314,11 @@ void MainWindow::onSearchButtonClicked() {
                         isExcluded = (getStockExclusionStatusQuery.value("excluded").toInt() != 0);
 
                     if (!isExcluded) {
-                        std::vector<double> scores = StockAnalysis::calculateTotalScores(price, priceHistory, (priceHistory.size() - 1));
+                        std::vector<double> scores = analyzer.calculateTotalScores(symbol, price, priceHistory, (priceHistory.size() - 1));
+
+                        // If the analyzer returns empty, skip the symbol
+                        if (scores.empty())
+                            continue; // Skip to the next symbol
 
                         // Store score information for the UI
                         StockInformation info;
@@ -325,8 +328,28 @@ void MainWindow::onSearchButtonClicked() {
                         info.RSI_Score = scores[1];
                         info.BB_Score = scores[2];
                         info.Total_Score = scores[3];
-                        stockInfoMap.emplace(symbol, info);
+
                         updateScoresDatabase(symbol, scores);
+                        excludeSuspiciousScores();
+
+                        // Last exclusion flag check before adding to the dataset
+                        QSqlQuery finalExclusionCheckQuery(db);
+                        bool isExcluded = false;
+
+                        finalExclusionCheckQuery.prepare("SELECT * FROM stocks WHERE symbol = :symbol LIMIT 1");
+                        finalExclusionCheckQuery.bindValue(":symbol", QString::fromStdString(symbol));
+
+                        if (!finalExclusionCheckQuery.exec()) {
+                            QMessageBox::critical(this, "Database Error", "Query execution failed:" + finalExclusionCheckQuery.lastError().text());
+
+                            continue;
+                        }
+
+                        while (finalExclusionCheckQuery.next())
+                            isExcluded = (finalExclusionCheckQuery.value("excluded").toInt() != 0);
+
+                        if (!isExcluded)
+                            stockInfoMap.emplace(symbol, info);
                     }
                 } catch (const std::exception& e) {
                     QMessageBox::warning(this, "Calculation Error", QString("Error calculating scores for symbol %1: %2").arg(QString::fromStdString(symbol), e.what()));
@@ -384,12 +407,33 @@ void MainWindow::onSearchButtonClicked() {
                         info.RSI_Score = rsiScore;
                         info.BB_Score = bbScore;
                         info.Total_Score = totalScore;
-                        stockInfoMap.emplace(foundSymbol, info);
 
                         // Initialize the scores vector with the appropriate scores
                         std::vector<double> scores = { info.MA_Score, info.RSI_Score, info.BB_Score, info.Total_Score };
 
                         updateScoresDatabase(foundSymbol, scores);
+                        excludeSuspiciousScores();
+
+                        // Last exclusion flag check before adding to the dataset
+                        QSqlQuery finalExclusionCheckQuery(db);
+                        bool isExcluded = false;
+
+                        finalExclusionCheckQuery.prepare("SELECT * FROM stocks WHERE symbol = :symbol LIMIT 1");
+                        finalExclusionCheckQuery.bindValue(":symbol", QString::fromStdString(foundSymbol));
+
+                        if (!finalExclusionCheckQuery.exec()) {
+                            QMessageBox::critical(this, "Database Error", "Query execution failed:" + finalExclusionCheckQuery.lastError().text());
+
+                            continue;
+                        }
+
+                        while (finalExclusionCheckQuery.next())
+                            isExcluded = (finalExclusionCheckQuery.value("excluded").toInt() != 0);
+
+                        if (!isExcluded)
+                            stockInfoMap.emplace(foundSymbol, info);
+
+                        stockInfoMap.emplace(foundSymbol, info);
                     }
                     else {
                         QMessageBox::critical(this, "Database Error", "Query execution failed:" + scoresSelectQuery.lastError().text());
@@ -485,5 +529,42 @@ void MainWindow::updateScoresDatabase(const std::string symbol, const std::vecto
     if (!query.exec()) {
         QMessageBox::critical(this, "Database Error", "Failed to update scores database: " + query.lastError().text());
         std::cout << "Query Error:" << query.lastError().text().toStdString() << std::endl;
+
+        return;
+    }
+}
+
+void MainWindow::excludeSuspiciousScores() {
+    // TODO: Mark any symbol with a total score >=1.1 as excluded
+    QSqlQuery finalScoreCheckQuery(db);
+
+    finalScoreCheckQuery.prepare("SELECT * FROM scores WHERE total_score >= 1.1"); // Any score over 1.1 is considered erroneous
+
+    if (!finalScoreCheckQuery.exec()) {
+        QMessageBox::critical(this, "Database Error", "Failed to gather score data: " + finalScoreCheckQuery.lastError().text());
+        std::cout << "Query Error:" << finalScoreCheckQuery.lastError().text().toStdString() << std::endl;
+
+        return;
+    }
+
+    while (finalScoreCheckQuery.next()) {
+        QString symbol = finalScoreCheckQuery.value("smybol").toString();
+        double totalScore = finalScoreCheckQuery.value("toal_score").toDouble();
+
+        if (totalScore >= static_cast<double>(1.1)) {
+            QSqlQuery markExcludedQuery(db);
+
+            markExcludedQuery.prepare("UPDATE stocks SET excluded = 1 WHERE symbol = :symbol");
+            markExcludedQuery.bindValue(":symbol", symbol);
+
+            if (!markExcludedQuery.exec()) {
+                QMessageBox::critical(this, "Database Error", "Failed to update stocks database: " + markExcludedQuery.lastError().text());
+                std::cout << "Query Error:" << markExcludedQuery.lastError().text().toStdString() << std::endl;
+
+                return;
+            }
+
+            std::cout << "Excluded " << symbol.toStdString() << "from dataset due to erroneous score calculations." << std::endl;
+        }
     }
 }
