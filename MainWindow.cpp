@@ -586,8 +586,6 @@ void MainWindow::excludeSuspiciousScores() {
 
                 return;
             }
-
-            std::cout << "Excluded " << symbol.toStdString() << "from dataset due to erroneous score calculations." << std::endl;
         }
     }
 }
