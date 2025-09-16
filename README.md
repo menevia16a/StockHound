@@ -1,26 +1,118 @@
 # StockHound Stock Analyzer
-## Scoring System
-### Moving Average Score (MA Score):
-* A score closer to 1.0 indicates that the stock price is very close to the moving average, suggesting alignment with the trend.
-* A lower score indicates the price is significantly above or below the moving average, potentially signaling overvaluation or undervaluation.
 
-### Relative Strength Index Score (RSI Score):
-* A score closer to 1.0 indicates that the RSI is near 30, which is often considered a good buying opportunity in technical analysis.
-* A lower score suggests the RSI is moving toward the overbought (70+) or oversold (below 30) range, which might signal less favorable conditions.
+StockHound is a **cross-platform C++ stock analysis tool** with a Qt-based GUI.  
+It integrates technical indicators such as **Moving Averages, RSI, and Bollinger Bands** to generate a total weighted score for each stock.  
 
-### Bollinger Bands Score (BB Score):
-* A score closer to 1.0 means the stock price is well-positioned between the lower and upper Bollinger Bands, indicating less volatility.
-* A lower score could suggest the price is too close to the bands' extremes, which might imply instability or a breakout.
-Total Score:
+StockHound can be built and run on both **Linux** and **Windows**. On Windows, we use **vcpkg** for dependency management and automatically handle required DLLs.
 
-**The total weighted score, combining the three scores, will also range between 0.0 and 1.0, where a score closer to 1.0 suggests that the stock is an overall strong candidate for investment based on the weighted criteria.**
+---
+
+## 📊 Scoring System
+
+### Moving Average Score (MA Score)
+- A score closer to **1.0** indicates the stock price is very close to the moving average, suggesting alignment with the trend.
+- A lower score indicates the price is significantly above or below the moving average, potentially signaling overvaluation or undervaluation.
+
+### Relative Strength Index Score (RSI Score)
+- A score closer to **1.0** indicates that the RSI is near 30, which is often considered a good buying opportunity in technical analysis.
+- A lower score suggests the RSI is moving toward the overbought (70+) or oversold (below 30) range, which might signal less favorable conditions.
+
+### Bollinger Bands Score (BB Score)
+- A score closer to **1.0** means the stock price is well-positioned between the lower and upper Bollinger Bands, indicating less volatility.
+- A lower score could suggest the price is too close to the bands' extremes, implying instability or a potential breakout.
+
+### Total Weighted Score
+- Combines all three scores to produce a value between **0.0 and 1.0**.
+- A score closer to **>=0.8** indicates the stock is a strong candidate for investment based on the weighted criteria.
+---
 
 ## Weighted Criteria
-### Moving Average Score (40%):
-* Favors prices close to the moving average, which may indicate stability or trend alignment.
 
-### RSI Score (30%):
-* Rewards stocks with an RSI near 30, avoiding overbought (RSI > 70) or oversold (RSI < 30) conditions.
+| Score Type | Weight | Description |
+|------------|--------|-------------|
+| Moving Average | 40% | Favors prices close to the moving average, indicating stability or trend alignment. |
+| RSI | 30% | Rewards stocks with RSI near 30, avoiding overbought (>70) or oversold (<30) conditions. |
+| Bollinger Bands | 30% | Prefers prices within the Bollinger Bands, indicating less volatility. |
 
-### Bollinger Bands Score (30%):
-* Prefers prices within the Bollinger Bands, indicating less volatility.
+---
+
+## Building on Linux
+
+### Install dependencies (Debian/Ubuntu example)
+```bash
+sudo apt update
+sudo apt install -y cmake g++ qt6-base-dev libsqlite3-dev libcurl4-openssl-dev nlohmann-json3-dev
+```
+
+### Clone the repository (with submodules)
+```bash
+git clone --recurse-submodules https://github.com/menevia16a/StockHound.git
+cd StockHound
+```
+
+### Build
+```bash
+cmake -B build -S .
+cmake --build build
+```
+
+### Run
+```bash
+./build/StockHound
+```
+
+---
+
+## Building on Windows (Visual Studio + vcpkg)
+
+### 1. Install vcpkg
+```powershell
+git clone https://github.com/microsoft/vcpkg.git
+cd vcpkg
+.bootstrap-vcpkg.bat
+```
+
+### 2. Install dependencies
+```powershell
+.vcpkg install qt6-base:x64-windows sqlite3:x64-windows curl:x64-windows nlohmann-json:x64-windows
+```
+
+### 3. Clone the repository
+```powershell
+git clone --recurse-submodules https://github.com/menevia16a/StockHound.git
+cd StockHound
+```
+
+### 4. Configure with CMake
+Replace `<path-to-vcpkg>` with your vcpkg folder path:
+```powershell
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>\scripts\buildsystems\vcpkg.cmake -G "Visual Studio 17 2022"
+```
+
+### 5. Build
+Open `StockHound.sln` in Visual Studio and build **Release**, or from CLI:
+```powershell
+cmake --build build --config Release
+```
+
+### 6. Run
+After building:
+```powershell
+.\build\Release\StockHound.exe
+```
+
+**Notes for Windows users:**
+- `windeployqt` automatically copies all required Qt DLLs.
+- SQLite and cURL DLLs are also automatically copied by CMake post-build commands.
+
+---
+
+## ⚡ Development Notes
+- Use **Debug** build configuration for development and testing.
+- On Linux, you can enable debugging via `-DCMAKE_BUILD_TYPE=Debug`.
+- On Windows, ensure Visual Studio is configured for x64 builds to match vcpkg libraries.
+
+---
+
+## License
+MIT License
