@@ -166,5 +166,13 @@ $Env:APCA_API_DATA_URL="https://data.alpaca.markets"         # optional
 
 ---
 
-## License
-MIT License
+## Contact & Support
+
+For any questions or feedback, you can reach me at:
+
+**Email:** [veilbreaker@voidmaster.xyz](mailto:veilbreaker@voidmaster.xyz)
+
+If you would like to support the development of StockHound, donations are appreciated:
+
+**Donate:** [PayPal](https://www.paypal.me/JosiahWatkins)
+
