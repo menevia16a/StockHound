@@ -14,6 +14,7 @@
 #include <QPlainTextEdit>
 #include <QDateTime>
 #include <QStandardItemModel>
+#include <QSortFilterProxyModel>
 #include <QStandardItem>
 #include <unordered_map>
 
@@ -24,8 +25,15 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Create model for stocks table view
     QStandardItemModel* model = new QStandardItemModel(this);
 
+    // Wrap it in a proxy model for sorting
+    QSortFilterProxyModel* proxyModel = new QSortFilterProxyModel(this);
+
+    proxyModel->setSourceModel(model);
+    proxyModel->setSortCaseSensitivity(Qt::CaseInsensitive);
+    proxyModel->setDynamicSortFilter(true);
+
     // Setup the table
-    ui->stockList->setModel(model);
+    ui->stockList->setModel(proxyModel);
     model->setColumnCount(7);
     model->setHeaderData(0, Qt::Horizontal, "Name");
     model->setHeaderData(1, Qt::Horizontal, "Ticker");
@@ -35,6 +43,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     model->setHeaderData(5, Qt::Horizontal, "BB Score");
     model->setHeaderData(6, Qt::Horizontal, "Total Score");
     ui->stockList->setColumnWidth(0, 178);
+    ui->stockList->setSortingEnabled(true);
 
     // Set up SQLite database connection
     db = QSqlDatabase::addDatabase("QSQLITE");
@@ -483,8 +492,15 @@ void MainWindow::refreshStockList() {
     }
 
     // Notify the model that data has been changed to refresh the UI
-    if (model)
+    if (model) {
         emit model->layoutChanged();
+
+        // Force sorting by Total Score (column 6), descending
+        QSortFilterProxyModel* proxy = qobject_cast<QSortFilterProxyModel*>(ui->stockList->model());
+
+        if (proxy)
+            proxy->sort(6, Qt::DescendingOrder);
+    }
 }
 
 void MainWindow::addRowToTable(const QString& name, const QString& ticker, double price, double ma_score, double rsi_score, double bb_score, double total_score) {
