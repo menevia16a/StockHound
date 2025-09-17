@@ -79,7 +79,7 @@ cd vcpkg
 
 ### 3. Clone the repository
 ```powershell
-git clone --recurse-submodules https://github.com/menevia16a/StockHound.git
+git clone --recurse-submodules git@github.com:menevia16a/StockHound.git
 cd StockHound
 mkdir build
 cd build
