@@ -41,7 +41,7 @@ StockHound can be built and run on both **Linux** and **Windows**. On Windows, w
 ### Install dependencies (Debian/Ubuntu example)
 ```bash
 sudo apt update
-sudo apt install -y cmake g++ qt6-base-dev libsqlite3-dev libcurl4-openssl-dev nlohmann-json3-dev
+sudo apt install -y cmake g++ qt5-base-dev libsqlite3-dev libcurl4-openssl-dev nlohmann-json3-dev
 ```
 
 ### Clone the repository (with submodules)
