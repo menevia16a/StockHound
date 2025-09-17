@@ -74,7 +74,7 @@ cd vcpkg
 
 ### 2. Install dependencies
 ```powershell
-.\vcpkg install qt5-base:x64-windows qt5-linguisttools:x64-windows sqlite3:x64-windows curl:x64-windows nlohmann-json:x64-windows
+.\vcpkg install qt5-base:x64-windows sqlite3:x64-windows curl:x64-windows nlohmann-json:x64-windows
 ```
 
 ### 3. Clone the repository

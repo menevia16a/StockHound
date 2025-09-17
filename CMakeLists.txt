@@ -12,10 +12,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find Qt5 packages
-find_package(Qt5 REQUIRED COMPONENTS Widgets LinguistTools Sql)
-
-# Translation files
-set(TS_FILES StockHound_en_US.ts)
+find_package(Qt5 REQUIRED COMPONENTS Widgets Sql)
 
 # Project sources
 set(PROJECT_SOURCES
@@ -30,9 +27,6 @@ set(PROJECT_SOURCES
 
 # Create executable
 add_executable(StockHound ${PROJECT_SOURCES})
-
-# Handle translations
-qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 
 # Link Qt5
 target_link_libraries(StockHound PRIVATE Qt5::Widgets Qt5::Sql)
