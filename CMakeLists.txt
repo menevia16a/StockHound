@@ -22,7 +22,6 @@ set(PROJECT_SOURCES
     MainWindow.ui
     Analysis/StockAnalysis.cpp
     Analysis/StockAnalysis.h
-    ${TS_FILES}
 )
 
 # Create executable
