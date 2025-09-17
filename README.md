@@ -81,6 +81,8 @@ cd vcpkg
 ```powershell
 git clone --recurse-submodules https://github.com/menevia16a/StockHound.git
 cd StockHound
+mkdir build
+cd build
 ```
 
 ### 4. Configure with CMake
