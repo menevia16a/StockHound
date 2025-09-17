@@ -30,7 +30,6 @@ std::pair<double, double> StockAnalysis::calculateBollingerBands(const std::vect
     }
 
     double stdDev = std::sqrt(sumSquares / period);
-
     double upperBand = movingAverage + numStdDev * stdDev;
     double lowerBand = movingAverage - numStdDev * stdDev;
 
@@ -91,11 +90,10 @@ std::vector<double> StockAnalysis::calculateTotalScores(std::string symbol, doub
     double movingAverage = calculateMovingAverage(prices, period);
     double rsi = calculateRSI(prices, period);
     auto [upperBand, lowerBand] = calculateBollingerBands(prices, period);
-    std::vector<double> scores = {};
 
     // If any scores are invalid, mark as excluded
-    if (movingAverage == static_cast<double>(-1) |
-        rsi == static_cast<double>(-1) |
+    if (movingAverage == static_cast<double>(-1) ||
+        rsi == static_cast<double>(-1) ||
         (upperBand == static_cast<double>(-1) && lowerBand == static_cast<double>(-1))) {
         QSqlQuery markExcludedQuery(db);
 
@@ -105,7 +103,7 @@ std::vector<double> StockAnalysis::calculateTotalScores(std::string symbol, doub
         if (!markExcludedQuery.exec())
             QMessageBox::critical(nullptr, "Database Error", "Query execution failed:" + markExcludedQuery.lastError().text());
 
-        return scores; // Return empty vector
+        return {}; // Return empty vector
     }
 
     // Calculate individual scores
@@ -117,7 +115,7 @@ std::vector<double> StockAnalysis::calculateTotalScores(std::string symbol, doub
     double totalScore = maScore + rsiScore + bbScore;
 
     // Return all values
-    scores = { maScore, rsiScore, bbScore, totalScore };
+    std::vector<double> scores = { maScore, rsiScore, bbScore, totalScore };
 
     return scores;
 }

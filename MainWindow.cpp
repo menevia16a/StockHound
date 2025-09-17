@@ -203,10 +203,10 @@ void MainWindow::onSearchButtonClicked() {
             // Only include stocks within the user's budget
             if (price <= budget) {
                 // Retreieve basic stock data
-                auto [fetchStatus, asset] = client.getAsset(symbol, userAgent);
+                auto [individualFetchStatus, asset] = client.getAsset(symbol, userAgent);
 
-                if (!fetchStatus.ok()) {
-                    QMessageBox::critical(this, "API Error", QString::fromStdString(fetchStatus.getMessage()));
+                if (!individualFetchStatus.ok()) {
+                    QMessageBox::critical(this, "API Error", QString::fromStdString(individualFetchStatus.getMessage()));
 
                     return;
                 }
@@ -323,7 +323,7 @@ void MainWindow::onSearchButtonClicked() {
                         isExcluded = (getStockExclusionStatusQuery.value("excluded").toInt() != 0);
 
                     if (!isExcluded) {
-                        std::vector<double> scores = analyzer.calculateTotalScores(symbol, price, priceHistory, (priceHistory.size() - 1));
+                        std::vector<double> scores = analyzer.calculateTotalScores(symbol, price, priceHistory, static_cast<int>(priceHistory.size()));
 
                         // If the analyzer returns empty, skip the symbol
                         if (scores.empty())
@@ -343,7 +343,7 @@ void MainWindow::onSearchButtonClicked() {
 
                         // Last exclusion flag check before adding to the dataset
                         QSqlQuery finalExclusionCheckQuery(db);
-                        bool isExcluded = false;
+                        isExcluded = false; // Reset the bool just to be safe
 
                         finalExclusionCheckQuery.prepare("SELECT * FROM stocks WHERE symbol = :symbol LIMIT 1");
                         finalExclusionCheckQuery.bindValue(":symbol", QString::fromStdString(symbol));
