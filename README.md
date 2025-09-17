@@ -74,7 +74,7 @@ cd vcpkg
 
 ### 2. Install dependencies
 ```powershell
-.\vcpkg install qt5-base:x64-windows sqlite3:x64-windows curl:x64-windows nlohmann-json:x64-windows glog:x64-windows jsoncpp:x64-windows
+.\vcpkg install qt5-base:x64-windows sqlite3:x64-windows curl:x64-windows nlohmann-json:x64-windows glog:x64-windows jsoncpp:x64-windows rapidjson:x64-windows
 ```
 
 ### 3. Clone the repository
@@ -94,7 +94,7 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>\scripts\buildsystems\vcpkg.cmake
 ### 5. Build
 Open `StockHound.sln` in Visual Studio and build **Release**, or from CLI:
 ```powershell
-cmake --build build --config Release
+cmake --build . --config Release
 ```
 
 ### 6. Run
