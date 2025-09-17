@@ -3,6 +3,9 @@
 #include "ThirdParty/alpaca-trade-api-cpp/alpaca/client.h"
 #include "ThirdParty/alpaca-trade-api-cpp/alpaca/config.h"
 #include <nlohmann/json.hpp>
+#include <QCoreApplication>
+#include <QFileInfo>
+#include <QDir>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QVariant>
@@ -46,8 +49,10 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->stockList->setSortingEnabled(true);
 
     // Set up SQLite database connection
+    QString exeDir = QFileInfo(QCoreApplication::applicationFilePath()).absolutePath();
+    QString dbFilePath = exeDir + "/cache.db";
     db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName("cache.db");
+    db.setDatabaseName(dbFilePath);
 
     if (!db.open()) {
         QMessageBox::critical(this, "Database Error", "Failed to open the SQLite database.");
