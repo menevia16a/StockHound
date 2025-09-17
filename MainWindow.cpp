@@ -48,15 +48,22 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->stockList->setColumnWidth(0, 178);
     ui->stockList->setSortingEnabled(true);
 
-    // Set up SQLite database connection
-    QString exeDir = QFileInfo(QCoreApplication::applicationFilePath()).absolutePath();
-    QString dbFilePath = exeDir + "/cache.db";
+    // Set up SQLite database in the same folder as the executable
+    QString exeDir = QCoreApplication::applicationDirPath();  // Folder containing the exe
+    QDir dir(exeDir);
+
+    // Ensure the directory exists (should always exist, just a safety check)
+    if (!dir.exists()) {
+        QMessageBox::critical(this, "Database Error", "Executable directory does not exist: " + exeDir);
+        return;
+    }
+
+    QString dbFilePath = dir.filePath("cache.db"); // Correct path separator
     db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName(dbFilePath);
 
     if (!db.open()) {
-        QMessageBox::critical(this, "Database Error", "Failed to open the SQLite database.");
-
+        QMessageBox::critical(this, "Database Error", "Failed to open SQLite database: " + dbFilePath);
         return;
     }
 
