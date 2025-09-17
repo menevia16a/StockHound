@@ -36,30 +36,59 @@ StockHound can be built and run on both **Linux** and **Windows**. On Windows, w
 
 ---
 
-## Building on Linux
+## Building on Linux (CMake + system packages)
 
-### Install dependencies (Debian/Ubuntu example)
+### 1. Install dependencies  
+(Debian/Ubuntu example — adjust package names for your distro)
+
 ```bash
 sudo apt update
-sudo apt install -y cmake g++ qt5-base-dev libsqlite3-dev libcurl4-openssl-dev nlohmann-json3-dev
+sudo apt install -y \
+    cmake g++ pkg-config \
+    qtbase5-dev libsqlite3-dev libcurl4-openssl-dev \
+    nlohmann-json3-dev libjsoncpp-dev \
+    libglog-dev rapidjson-dev \
+    libssl-dev libwebsockets-dev \
+    libuwebsockets-dev \
+    libgtest-dev
 ```
 
-### Clone the repository (with submodules)
+> **Note:** Some distros may not package `uWebSockets` or `rapidjson`. In that case, you can either build from source or use vcpkg on Linux as well for consistency.
+
+---
+
+### 2. Clone the repository (with submodules, via SSH)
+
 ```bash
-git clone --recurse-submodules https://github.com/menevia16a/StockHound.git
+git clone --recurse-submodules git@github.com:menevia16a/StockHound.git
 cd StockHound
+mkdir build
+cd build
 ```
 
-### Build
+---
+
+### 3. Build
+
 ```bash
-cmake -B build -S .
-cmake --build build
+cmake ..
+cmake --build . --config Release
 ```
 
-### Run
+---
+
+### 4. Run
+
 ```bash
 ./build/StockHound
 ```
+
+---
+
+### 🔍 Notes for Linux users
+- Use `-DCMAKE_BUILD_TYPE=Debug` when debugging.  
+- If Qt plugins or shared libraries are missing, install the corresponding `qt5-plugins-*` packages for your distro.  
+- On Arch, Fedora, or others, package names may differ (`qt5-base`, `jsoncpp`, etc.).  
 
 ---
 
@@ -127,14 +156,14 @@ StockHound requires a few environment variables to interact with the Alpaca API.
    Base URL for the Alpaca API. Defaults to:
 
    ```
-   https://api.alpaca.markets
+   api.alpaca.markets
    ```
 
 2. **`APCA_API_DATA_URL`**
    Base URL for the Alpaca data API. Defaults to:
 
    ```
-   https://data.alpaca.markets
+   data.alpaca.markets
    ```
 
 ## Setting Environment Variables
@@ -144,8 +173,8 @@ StockHound requires a few environment variables to interact with the Alpaca API.
 ```bash
 export APCA_API_KEY_ID="your_api_key_id_here"
 export APCA_API_SECRET_KEY="your_api_secret_key_here"
-export APCA_API_BASE_URL="https://api.alpaca.markets"        # optional
-export APCA_API_DATA_URL="https://data.alpaca.markets"       # optional
+export APCA_API_BASE_URL="api.alpaca.markets"        # optional
+export APCA_API_DATA_URL="data.alpaca.markets"       # optional
 ```
 
 ### Windows (PowerShell)
@@ -153,8 +182,8 @@ export APCA_API_DATA_URL="https://data.alpaca.markets"       # optional
 ```powershell
 $Env:APCA_API_KEY_ID="your_api_key_id_here"
 $Env:APCA_API_SECRET_KEY="your_api_secret_key_here"
-$Env:APCA_API_BASE_URL="https://api.alpaca.markets"          # optional
-$Env:APCA_API_DATA_URL="https://data.alpaca.markets"         # optional
+$Env:APCA_API_BASE_URL="api.alpaca.markets"          # optional
+$Env:APCA_API_DATA_URL="data.alpaca.markets"         # optional
 ```
 
 > **Note:** You must set the required variables before running StockHound, otherwise the application will not be able to connect to Alpaca.
