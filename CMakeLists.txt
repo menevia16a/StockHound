@@ -98,4 +98,16 @@ if(WIN32)
             COMMENT "Running windeployqt to bundle Qt5 runtime libraries"
         )
     endif()
+
+    # Copy cache.db to executable directory
+    set(CACHE_DB_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/cache.db")
+
+    if(EXISTS "${CACHE_DB_SOURCE}")
+        add_custom_command(TARGET StockHound POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CACHE_DB_SOURCE}"
+                $<TARGET_FILE_DIR:StockHound>
+            COMMENT "Copying cache.db to executable directory"
+        )
+    endif()
 endif()
