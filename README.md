@@ -103,7 +103,7 @@ cd vcpkg
 
 ### 2. Install dependencies
 ```powershell
-.\vcpkg install qt5-base[sql-sqlite3]:x64-windows sqlite3:x64-windows curl:x64-windows nlohmann-json:x64-windows glog:x64-windows jsoncpp:x64-windows rapidjson:x64-windows cpp-httplib:x64-windows openssl:x64-windows libwebsockets:x64-windows uwebsockets:x64-windows gtest:x64-windows
+.\vcpkg install qt5-base[sqlite3plugin]:x64-windows sqlite3:x64-windows curl:x64-windows nlohmann-json:x64-windows glog:x64-windows jsoncpp:x64-windows rapidjson:x64-windows cpp-httplib:x64-windows openssl:x64-windows libwebsockets:x64-windows uwebsockets:x64-windows gtest:x64-windows
 ```
 
 ### 3. Clone the repository
