@@ -15,8 +15,8 @@
 #include <QPushButton>
 #include <QLineEdit>
 #include <QPlainTextEdit>
-#include <QDateTime>
 #include <QStandardItemModel>
+#include <QStandardPaths>
 #include <QSortFilterProxyModel>
 #include <QStandardItem>
 #include <unordered_map>
@@ -48,22 +48,28 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->stockList->setColumnWidth(0, 178);
     ui->stockList->setSortingEnabled(true);
 
-    // Set up SQLite database in the same folder as the executable
-    QString exeDir = QCoreApplication::applicationDirPath();  // Folder containing the exe
-    QDir dir(exeDir);
+    // Determine a cross-platform writable folder
+    QString writableDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 
-    // Ensure the directory exists (should always exist, just a safety check)
+    // Ensure the folder exists
+    QDir dir(writableDir);
+
     if (!dir.exists()) {
-        QMessageBox::critical(this, "Database Error", "Executable directory does not exist: " + exeDir);
-        return;
+        if (!dir.mkpath(".")) {
+            QMessageBox::critical(this, "Database Error", "Failed to create writable directory: " + writableDir);
+
+            return;
+        }
     }
 
-    QString dbFilePath = dir.filePath("cache.db"); // Correct path separator
+    // Path for the SQLite database
+    QString dbFilePath = dir.filePath("cache.db");
     db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName(dbFilePath);
 
     if (!db.open()) {
         QMessageBox::critical(this, "Database Error", "Failed to open SQLite database: " + dbFilePath);
+
         return;
     }
 
