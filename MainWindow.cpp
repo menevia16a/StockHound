@@ -16,7 +16,6 @@
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QStandardItemModel>
-#include <QStandardPaths>
 #include <QSortFilterProxyModel>
 #include <QStandardItem>
 #include <unordered_map>
@@ -48,21 +47,18 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->stockList->setColumnWidth(0, 178);
     ui->stockList->setSortingEnabled(true);
 
-    // Determine a cross-platform writable folder
-    QString writableDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    // Set up SQLite database in the same folder as the executable
+    QString exeDir = QCoreApplication::applicationDirPath();  // Folder containing the exe
+    QDir dir(exeDir);
 
-    // Ensure the folder exists
-    QDir dir(writableDir);
-
+    // Ensure the directory exists (should always exist, just a safety check)
     if (!dir.exists()) {
-        if (!dir.mkpath(writableDir)) {  // Creates full path
-            QMessageBox::critical(this, "Database Error", "Failed to create writable directory: " + writableDir);
-            return;
-        }
+        QMessageBox::critical(this, "Database Error", "Executable directory does not exist: " + exeDir);
+
+        return;
     }
 
-    // Path for the SQLite database
-    QString dbFilePath = dir.filePath("cache.db");
+    QString dbFilePath = dir.filePath("cache.db"); // Correct path separator
     db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName(dbFilePath);
 
@@ -71,8 +67,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
 
         return;
     }
-
-    std::cout << "Database path: " << dbFilePath.toStdString() << std::endl;
 
     // Create table for caching if it doesn't exist
     QSqlQuery createStocksDatabaseQuery(db);

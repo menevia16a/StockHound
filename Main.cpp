@@ -5,7 +5,6 @@
 int main(int argc, char *argv[]) {
     QApplication application(argc, argv);
 
-    QCoreApplication::setOrganizationName("VeilbreakerSoftware");
     QCoreApplication::setApplicationName("StockHound");
 
     MainWindow window;
