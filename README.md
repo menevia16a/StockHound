@@ -39,7 +39,7 @@ StockHound can be built and run on both **Linux** and **Windows**. On Windows, w
 ## Building on Linux (CMake + system packages)
 
 ### 1. Install dependencies  
-(Debian/Ubuntu example — adjust package names for your distro)
+(Debian/Ubuntu)
 
 ```bash
 sudo apt update
@@ -138,7 +138,7 @@ After building:
 
 ---
 
-# Setting Up Environment Variables
+# Environment Variables
 
 StockHound requires a few environment variables to interact with the Alpaca API. Two are **required** and two are **optional**.
 
@@ -168,7 +168,7 @@ StockHound requires a few environment variables to interact with the Alpaca API.
 
 ## Setting Environment Variables
 
-### Linux / macOS (bash/zsh)
+### Linux (bash/zsh)
 
 ```bash
 export APCA_API_KEY_ID="your_api_key_id_here"
