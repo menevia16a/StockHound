@@ -64,50 +64,51 @@ else()
     target_compile_options(StockHound PRIVATE -Wall -Wextra -Werror)
 endif()
 
-# Windows DLL deployment
+# Windows DLL and plugin deployment
 if(WIN32)
-    # Helper function to copy DLLs next to exe
-    function(copy_runtime_dll target dll_location)
+
+    # Helper function to copy a file next to the exe
+    function(copy_runtime_file target src_file dest_subdir)
+        get_filename_component(filename "${src_file}" NAME)
+        set(dest_dir "$<TARGET_FILE_DIR:${target}>/${dest_subdir}")
         add_custom_command(TARGET ${target} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${dll_location}"
-                $<TARGET_FILE_DIR:${target}>
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${dest_dir}"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${src_file}" "${dest_dir}/${filename}"
+            COMMENT "Copying ${filename} to ${dest_subdir}"
         )
     endfunction()
 
-    # SQLite DLL
+    # Copy SQLite DLL
     get_target_property(sqlite3_location SQLite::SQLite3 IMPORTED_LOCATION_RELEASE)
 
     if(sqlite3_location)
-        copy_runtime_dll(StockHound "${sqlite3_location}")
+        copy_runtime_file(StockHound "${sqlite3_location}" "")
     endif()
 
-    # CURL DLL
+    # Copy CURL DLL
     get_target_property(curl_location CURL::libcurl IMPORTED_LOCATION_RELEASE)
 
     if(curl_location)
-        copy_runtime_dll(StockHound "${curl_location}")
+        copy_runtime_file(StockHound "${curl_location}" "")
     endif()
 
-    # Qt5 deployment
+    # Copy Qt SQLite plugin (qsqlite.dll)
+    # Adjust this path if your Qt installation is elsewhere
+    set(QT_SQLITE_PLUGIN "$ENV{VCPKG_ROOT}/installed/x64-windows/plugins/sqldrivers/qsqlite.dll")
+
+    if(EXISTS "${QT_SQLITE_PLUGIN}")
+        copy_runtime_file(StockHound "${QT_SQLITE_PLUGIN}" "plugins/sqldrivers")
+    else()
+        message(WARNING "qsqlite.dll not found, Qt SQL driver may fail!")
+    endif()
+
+    # Deploy remaining Qt runtime libraries with windeployqt
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "$ENV{VCPKG_ROOT}/installed/x64-windows/tools/qt5/bin")
 
     if(WINDEPLOYQT_EXECUTABLE)
         add_custom_command(TARGET StockHound POST_BUILD
             COMMAND "${WINDEPLOYQT_EXECUTABLE}" --release $<TARGET_FILE:StockHound>
             COMMENT "Running windeployqt to bundle Qt5 runtime libraries"
-        )
-    endif()
-
-    # Copy cache.db to executable directory
-    set(CACHE_DB_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/cache.db")
-
-    if(EXISTS "${CACHE_DB_SOURCE}")
-        add_custom_command(TARGET StockHound POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${CACHE_DB_SOURCE}"
-                $<TARGET_FILE_DIR:StockHound>
-            COMMENT "Copying cache.db to executable directory"
         )
     endif()
 endif()
