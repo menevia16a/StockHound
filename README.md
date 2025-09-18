@@ -68,7 +68,7 @@ cd build
 
 ---
 
-### 3. Build
+### 3. Configure & Build
 
 ```bash
 cmake ..
@@ -170,22 +170,34 @@ StockHound requires a few environment variables to interact with the Alpaca API.
 
 ### Linux (bash/zsh)
 
+Append to your shell configuration file (`~/.bashrc`, `~/.zshrc`, or `~/.profile`):
+
 ```bash
-export APCA_API_KEY_ID="your_api_key_id_here"
-export APCA_API_SECRET_KEY="your_api_secret_key_here"
-export APCA_API_BASE_URL="api.alpaca.markets"        # optional
-export APCA_API_DATA_URL="data.alpaca.markets"       # optional
+echo 'export APCA_API_KEY_ID="your_api_key_id_here"' >> ~/.bashrc
+echo 'export APCA_API_SECRET_KEY="your_api_secret_key_here"' >> ~/.bashrc
+echo 'export APCA_API_BASE_URL="api.alpaca.markets"' >> ~/.bashrc
+echo 'export APCA_API_DATA_URL="data.alpaca.markets"' >> ~/.bashrc
+```
+
+Reload your shell:
+
+```bash
+source ~/.bashrc
 ```
 
 ### Windows (PowerShell)
 
+Run PowerShell **as Administrator**:
+
 ```powershell
-$Env:APCA_API_KEY_ID="your_api_key_id_here"
-$Env:APCA_API_SECRET_KEY="your_api_secret_key_here"
-$Env:APCA_API_BASE_URL="api.alpaca.markets"          # optional
-$Env:APCA_API_DATA_URL="data.alpaca.markets"         # optional
+[System.Environment]::SetEnvironmentVariable("APCA_API_KEY_ID", "your_api_key_id_here", "User")
+[System.Environment]::SetEnvironmentVariable("APCA_API_SECRET_KEY", "your_api_secret_key_here", "User")
+[System.Environment]::SetEnvironmentVariable("APCA_API_BASE_URL", "api.alpaca.markets", "User")
+[System.Environment]::SetEnvironmentVariable("APCA_API_DATA_URL", "data.alpaca.markets", "User")
 ```
 
+> `"User"` applies to your account only; use `"Machine"` for system-wide variables (requires admin).  
+> Restart PowerShell or log out/in for changes to take effect.
 > **Note:** You must set the required variables before running StockHound, otherwise the application will not be able to connect to Alpaca.
 
 ---
