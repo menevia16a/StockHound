@@ -55,9 +55,8 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     QDir dir(writableDir);
 
     if (!dir.exists()) {
-        if (!dir.mkpath(".")) {
+        if (!dir.mkpath(writableDir)) {  // Creates full path
             QMessageBox::critical(this, "Database Error", "Failed to create writable directory: " + writableDir);
-
             return;
         }
     }
@@ -72,6 +71,8 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
 
         return;
     }
+
+    std::cout << "Database path: " << dbFilePath.toStdString() << std::endl;
 
     // Create table for caching if it doesn't exist
     QSqlQuery createStocksDatabaseQuery(db);
